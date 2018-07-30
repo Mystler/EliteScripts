@@ -1,0 +1,15 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    json (2.1.0)
+    kramdown (1.17.0)
+
+PLATFORMS
+  x64-mingw32
+
+DEPENDENCIES
+  json
+  kramdown
+
+BUNDLED WITH
+   1.16.1

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <% if @converter.root.options[:encoding] %>
+    <meta http-equiv="Content-type" content="text/html;charset=<%= @converter.root.options[:encoding] %>">
+    <% end %>
+    <title>Aisling Duval Report</title>
+    <meta name="generator" content="kramdown <%= ::Kramdown::VERSION %>" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <%= @body %>
+  </body>
+</html>
