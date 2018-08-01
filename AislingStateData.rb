@@ -11,8 +11,9 @@ end
 # Only collecting strings as items and printing them in kramdown format.
 # Override the private methods itemToString and sort when working with objects.
 class AislingDataSet
-  def initialize(title, description = nil)
+  def initialize(title, icon = nil, description = nil)
     @title = title
+    @icon = icon
     @description = description
     @items = []
     @table = nil
@@ -32,7 +33,8 @@ class AislingDataSet
 
   def write(out, removeDuplicates = true)
     out.puts '<div class="card bg-darken" markdown="1">'
-    out.puts "### #{@title}"
+    svg = @icon ? "<img class=\"ad-icon\" alt=\"#{@icon}\" src=\"#{@icon}.svg\"> " : ''
+    out.puts "### #{svg}#{@title}"
     out.puts '{:.card-header}'
     out.puts '<div class="card-body" markdown="1">'
     if @description

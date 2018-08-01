@@ -22,3 +22,8 @@ u {
 .bg-darken {
     background-color: rgba(0,0,0,.1)!important;
 }
+
+.ad-icon {
+    margin-top: -0.2em;
+    height: 1em;
+}

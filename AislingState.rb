@@ -72,21 +72,27 @@ def system_cc_overhead(no_of_systems)
 end
 
 # Collecting data into these
-ctrl_bonus_impossible = AislingDataSet.new('Control systems with impossible fortification bonus', 'These do not have CCCs in enough exploited systems (50% cannot be reached).')
+ctrl_bonus_impossible = AislingDataSet.new(
+  'Control systems with impossible fortification bonus', 'fortify',
+  'These do not have CCCs in enough exploited systems (50% cannot be reached).'
+)
 ctrl_bonus_impossible.setTable(['Control System', 'Possible CCC Governments', 'Total Governments'])
-ctrl_bonus_incomplete = AislingDataSet.new('Control systems without active fortification bonus where possible')
+ctrl_bonus_incomplete = AislingDataSet.new('Control systems without active fortification bonus where possible', 'fortify')
 ctrl_bonus_incomplete.setTable(['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments'])
-ctrl_weak = AislingDataSet.new('Control systems that are UNFAVORABLE')
+ctrl_weak = AislingDataSet.new('Control systems that are UNFAVORABLE', 'covert')
 ctrl_weak.setTable(['Control System', 'Unfavorable Governments', 'Total Governments'])
-ctrl_radius_income = CCIncomeDataSet.new('Control systems by radius income', 'CC values calculated with experimental formulas.')
+ctrl_radius_income = CCIncomeDataSet.new('Control systems by radius income', 'finance', 'CC values calculated with experimental formulas.')
 ctrl_radius_income.setTable(['Control System', 'Income'])
-ctrl_radius_profit = CCProfitDataSet.new('Control systems by radius profit', 'CC values calculated with experimental formulas.')
+ctrl_radius_profit = CCProfitDataSet.new('Control systems by radius profit', 'finance', 'CC values calculated with experimental formulas.')
 ctrl_radius_profit.setTable(['Control System', 'Profit', 'Income', 'Upkeep', 'Overhead'])
-fac_fav_push = FavPushFactionDataSet.new('Best factions to push to get fortification bonus', 'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.')
+fac_fav_push = FavPushFactionDataSet.new(
+  'Best factions to push to get fortification bonus', 'fortify',
+  'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.'
+)
 fac_fav_push.setTable(['Faction', 'System', 'Influence', 'Sphere'])
-fac_fav_war = AislingDataSet.new('Warring favorable factions')
+fac_fav_war = AislingDataSet.new('Warring favorable factions', 'combat')
 fac_fav_war.setTable(['Faction', 'Type', 'System'])
-fac_fav_boom = AislingDataSet.new('Booming favorable factions')
+fac_fav_boom = AislingDataSet.new('Booming favorable factions', 'finance')
 fac_fav_boom.setTable(['Faction'])
 
 # Process AD data
