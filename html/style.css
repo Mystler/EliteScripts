@@ -10,6 +10,10 @@ a {
     color: #0099FF;
 }
 
+a:hover {
+    color: #77CCFF;
+}
+
 u {
     text-decoration: none;
     border-bottom: 1px dashed;
@@ -20,7 +24,7 @@ u {
 }
 
 .bg-darken {
-    background-color: rgba(0,0,0,.1)!important;
+    background-color: rgba(0, 0, 0, 0.1) !important;
 }
 
 .ad-icon {
