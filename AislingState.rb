@@ -89,11 +89,11 @@ fac_fav_push = FavPushFactionDataSet.new(
   'Best factions to push to get fortification bonus', 'fortify',
   'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.'
 )
-fac_fav_push.setTable(['Faction', 'System', 'Influence', 'Sphere'])
+fac_fav_push.setTable(['Faction', 'System', 'Influence', 'Sphere', 'Updated'])
 fac_fav_war = AislingDataSet.new('Warring favorable factions', 'combat')
-fac_fav_war.setTable(['Faction', 'Type', 'System'])
+fac_fav_war.setTable(['Faction', 'Type', 'System', 'Updated'])
 fac_fav_boom = AislingDataSet.new('Booming favorable factions', 'finance')
-fac_fav_boom.setTable(['Faction'])
+fac_fav_boom.setTable(['Faction', 'Updated'])
 
 # Process AD data
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
@@ -127,8 +127,8 @@ ad_control.each do |ctrl_sys|
       if !strong_govs.include?(sys['government']) && fac['minor_faction_id'] != sys['government_id']
         best_fav_fac = fac if !best_fav_fac || fac['influence'] > best_fav_fac['influence']
       end
-      fac_fav_war.addItem "#{link_to_faction(fac['fac'])} | #{fac['state']} | #{link_to_system(sys)}" if ['Civil War', 'War'].include? fac['state']
-      fac_fav_boom.addItem link_to_faction(fac['fac']) if fac['state'] == 'Boom'
+      fac_fav_war.addItem "#{link_to_faction(fac['fac'])} | #{fac['state']} | #{link_to_system(sys)} | #{updated_at(sys)}" if ['Civil War', 'War'].include? fac['state']
+      fac_fav_boom.addItem "#{link_to_faction(fac['fac'])} | #{updated_at(sys)}" if fac['state'] == 'Boom'
     end
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac['fac'], system: sys, influence: best_fav_fac['influence'], control_system: ctrl_sys})

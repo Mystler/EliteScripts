@@ -7,6 +7,11 @@ def link_to_faction(faction)
   return "#{faction['name']} <sup>[E](https://eddb.io/faction/#{faction['id']}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{faction['name']}){:target=\"_blank\"}</sup>"
 end
 
+def updated_at(el)
+  time = Time.at(el['updated_at'])
+  return "<u><em class=\"timeago\" datetime=\"#{time}\" data-toggle=\"tooltip\" title=\"#{time}\"></em></u>"
+end
+
 # Base class for reports.
 # Only collecting strings as items and printing them in kramdown format.
 # Override the private methods itemToString and sort when working with objects.
@@ -85,9 +90,10 @@ end
 
 # Fav Push Factions Data Set
 # Expected Item properties: faction, system, influence, control_system
+# Added internally (should be in table header): updated_at
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | #{item[:influence].round(1)}% | #{link_to_system(item[:control_system])}"
+    return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | #{item[:influence].round(1)}% | #{link_to_system(item[:control_system])} | #{updated_at(item[:system])}"
   end
 
   def sort
