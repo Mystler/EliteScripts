@@ -4,17 +4,19 @@ require 'json'
 require 'matrix'
 require 'kramdown'
 
-$md = StringIO.new
+require_relative 'AislingStateData'
 
-$md.puts '# Aisling Duval Report'
-$md.puts '{:.no_toc}'
-$md.puts "*Generated: #{Time.now}*"
-$md.puts
-$md.puts '### Table of Contents'
-$md.puts '{:.no_toc}'
-$md.puts '* TOC'
-$md.puts '{:toc}'
-$md.puts
+mdout = StringIO.new
+
+mdout.puts '# Aisling Duval Report'
+mdout.puts '{:.no_toc}'
+mdout.puts "*Generated: #{Time.now}*"
+mdout.puts
+mdout.puts '### Table of Contents'
+mdout.puts '{:.no_toc}'
+mdout.puts '* TOC'
+mdout.puts '{:toc}'
+mdout.puts
 
 # Total data
 factions = JSON.parse(File.read('factions.json'))
@@ -45,30 +47,7 @@ ad_control.each do |sys|
   sys['dist_to_cubeo'] = (sys['location'] - ad_cubeo['location']).r
 end
 
-# Helper
-def pretty_print(title, arr, desc = nil)
-  $md.puts "### #{title}"
-  if desc
-    $md.puts "*#{desc}*"
-    $md.puts
-  end
-  arr.each do |el|
-    $md.puts "- #{el}"
-  end
-  $md.puts 'NONE' if arr.empty?
-  $md.puts
-  $md.puts '[To Top](#)'
-  $md.puts
-end
-
-def link_to_system(system)
-  return "#{system['name']} <sup>[E](https://eddb.io/system/#{system['id']}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system['edsm_id']}/name/#{system['name']}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{system['name']}){:target=\"_blank\"}</sup>"
-end
-
-def link_to_faction(faction)
-  return "#{faction['name']} <sup>[E](https://eddb.io/faction/#{faction['id']}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{faction['name']}){:target=\"_blank\"}</sup>"
-end
-
+# Helpers
 def system_cc_income(population)
   return 0 if population <= 0
 
@@ -89,13 +68,14 @@ def system_cc_overhead(no_of_systems)
 end
 
 # Collecting data into these
-ctrl_bonus_impossible = []
-ctrl_bonus_incomplete = []
-ctrl_weak = []
-ctrl_radius_profit = []
-fac_fav_push = []
-fac_fav_war = []
-fac_fav_boom = []
+ctrl_bonus_impossible = AislingDataSet.new('Control systems with impossible fortification bonus', 'These do not have CCCs in enough exploited systems (50% cannot be reached).')
+ctrl_bonus_incomplete = AislingDataSet.new('Control systems without active fortification bonus where possible')
+ctrl_weak = AislingDataSet.new('Control systems that are UNFAVORABLE')
+ctrl_radius_income = CCIncomeDataSet.new('Control systems by radius income', 'CC values calculated with experimental formulas.')
+ctrl_radius_profit = CCProfitDataSet.new('Control systems by radius profit', 'CC values calculated with experimental formulas.')
+fac_fav_push = FavPushFactionDataSet.new('Best factions to push to get fortification bonus', 'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.')
+fac_fav_war = AislingDataSet.new('Warring favorable factions')
+fac_fav_boom = AislingDataSet.new('Booming favorable factions')
 
 # Process AD data
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
@@ -129,8 +109,8 @@ ad_control.each do |ctrl_sys|
       if !strong_govs.include?(sys['government']) && fac['minor_faction_id'] != sys['government_id']
         best_fav_fac = fac if !best_fav_fac || fac['influence'] > best_fav_fac['influence']
       end
-      fac_fav_war.push "#{link_to_faction(fac['fac'])} --- #{fac['state']} in #{link_to_system(sys)}" if ['Civil War', 'War'].include? fac['state']
-      fac_fav_boom.push link_to_faction(fac['fac']) if fac['state'] == 'Boom'
+      fac_fav_war.addItem "#{link_to_faction(fac['fac'])} --- #{fac['state']} in #{link_to_system(sys)}" if ['Civil War', 'War'].include? fac['state']
+      fac_fav_boom.addItem link_to_faction(fac['fac']) if fac['state'] == 'Boom'
     end
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac['fac'], system: sys, influence: best_fav_fac['influence'], control_system: ctrl_sys})
@@ -142,37 +122,30 @@ ad_control.each do |ctrl_sys|
   poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f >= 0.5
   weak_gov = weak_gov_count.to_f / gov_count.to_f >= 0.5
   if !fav_gov && poss_fav_gov
-    ctrl_bonus_incomplete.push "#{link_to_system(ctrl_sys)} (#{fav_gov_count} of #{poss_fav_gov_count} in #{gov_count})"
-    fac_fav_push += local_fac_fav_push
+    ctrl_bonus_incomplete.addItem "#{link_to_system(ctrl_sys)} (#{fav_gov_count} of #{poss_fav_gov_count} in #{gov_count})"
+    fac_fav_push.addItems local_fac_fav_push
   elsif !poss_fav_gov
-    ctrl_bonus_impossible.push "#{link_to_system(ctrl_sys)} (max #{poss_fav_gov_count}/#{gov_count})"
+    ctrl_bonus_impossible.addItem "#{link_to_system(ctrl_sys)} (max #{poss_fav_gov_count}/#{gov_count})"
   end
-  ctrl_weak.push "#{link_to_system(ctrl_sys)} (#{weak_gov_count}/#{gov_count})" if weak_gov
+  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} (#{weak_gov_count}/#{gov_count})" if weak_gov
 
+  ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys['dist_to_cubeo'])
   radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
-  ctrl_radius_profit.push({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep})
+  ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: ad_system_cc_overhead})
 end
 
-# Post processing
-fac_fav_push.sort! { |x, y| y[:influence] <=> x[:influence] }
-fac_fav_push_strings = fac_fav_push.map { |x| "#{link_to_faction(x[:faction])} in #{link_to_system(x[:system])} (#{x[:influence].round(1)}%) for Control System #{link_to_system(x[:control_system])}" }
-fac_fav_push_strings.uniq!
-fac_fav_war.uniq!
-fac_fav_boom.uniq!
-ctrl_radius_profit.sort! { |x, y| y[:profit] <=> x[:profit] }
-ctrl_radius_profit_strings = ctrl_radius_profit.map { |x| "#{link_to_system(x[:control_system])} has a radius profit of #{x[:profit]} CC (In: #{x[:income]}, Upkeep: #{x[:upkeep]}, Overhead: #{ad_system_cc_overhead})" }
-
 # Output
-pretty_print('Control systems without active fortification bonus where possible', ctrl_bonus_incomplete)
-pretty_print('Best factions to push to get fortification bonus', fac_fav_push_strings, 'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.')
-pretty_print('Control systems that are UNFAVORABLE', ctrl_weak)
-pretty_print('Control systems by radius profit', ctrl_radius_profit_strings, 'CC values calculated with experimental formulas.')
-pretty_print('Warring favorable factions', fac_fav_war)
-pretty_print('Booming favorable factions', fac_fav_boom)
-pretty_print('Control systems with impossible fortification bonus', ctrl_bonus_impossible, 'These do not have CCCs in enough exploited systems (50% cannot be reached).')
+ctrl_bonus_incomplete.write(mdout)
+fac_fav_push.write(mdout)
+ctrl_weak.write(mdout)
+fac_fav_war.write(mdout)
+fac_fav_boom.write(mdout)
+ctrl_bonus_impossible.write(mdout)
+ctrl_radius_income.write(mdout)
+ctrl_radius_profit.write(mdout)
 
 # Write to file
 File.open('AislingState.html', 'w') do |f|
-  f.write Kramdown::Document.new($md.string, {template: 'AislingState.erb'}).to_html
+  f.write Kramdown::Document.new(mdout.string, {template: 'AislingState.erb'}).to_html
 end
