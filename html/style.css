@@ -1,0 +1,24 @@
+body {
+    margin-top: 1rem;
+    font-family: 'Roboto', sans-serif;
+    color: #FFF;
+    background: linear-gradient(#0066AA, #024);
+    background-attachment: fixed;
+}
+
+a {
+    color: #0099FF;
+}
+
+u {
+    text-decoration: none;
+    border-bottom: 1px dashed;
+}
+
+.card {
+    margin-bottom: 1rem;
+}
+
+.bg-darken {
+    background-color: rgba(0,0,0,.1)!important;
+}

@@ -15,6 +15,7 @@ class AislingDataSet
     @title = title
     @description = description
     @items = []
+    @table = nil
   end
 
   def addItem(item)
@@ -25,21 +26,36 @@ class AislingDataSet
     @items += items
   end
 
+  def setTable(columns)
+    @table = columns
+  end
+
   def write(out, removeDuplicates = true)
+    out.puts '<div class="card bg-darken" markdown="1">'
     out.puts "### #{@title}"
+    out.puts '{:.card-header}'
+    out.puts '<div class="card-body" markdown="1">'
     if @description
       out.puts "*#{@description}*"
       out.puts
     end
+
     @items.uniq! if removeDuplicates
     lines = compileLines()
-    lines.each do |line|
-      out.puts "- #{line}"
+
+    if @table && !lines.empty?
+      out.puts '| ' + @table.join(" | ")
+      out.puts '| -' * @table.size
     end
+    lines.each do |line|
+      out.puts "#{@table ? '|' : '-'} #{line}"
+    end
+    out.puts "{:.table .table-striped .table-borderless}" if @table && !lines.empty?
     out.puts 'NONE' if lines.empty?
     out.puts
-    out.puts '[To Top](#)'
+    out.puts '<div class="text-right"><a href="#">Back to Top</a></div>'
     out.puts
+    out.puts '</div></div>'
   end
 
   private
@@ -69,7 +85,7 @@ end
 # Expected Item properties: faction, system, influence, control_system
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction])} in #{link_to_system(item[:system])} (#{item[:influence].round(1)}%) for Control System #{link_to_system(item[:control_system])}"
+    return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | #{item[:influence].round(1)}% | #{link_to_system(item[:control_system])}"
   end
 
   def sort
@@ -81,7 +97,7 @@ end
 # Expected Item properties: control_system, profit, income, upkeep, overhead
 class CCProfitDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} has a radius profit of #{item[:profit]} CC (Income: #{item[:income]}, Upkeep: #{item[:upkeep]}, Overhead: #{item[:overhead]})"
+    return "#{link_to_system(item[:control_system])} | #{item[:profit]} CC | #{item[:income]} CC | #{item[:upkeep]} CC | #{item[:overhead]} CC"
   end
 
   def sort
@@ -93,7 +109,7 @@ end
 # Expected Item properties: control_system, income
 class CCIncomeDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} has a radius income of #{item[:income]} CC"
+    return "#{link_to_system(item[:control_system])} | #{item[:income]} CC"
   end
 
   def sort
