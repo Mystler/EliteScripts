@@ -76,22 +76,16 @@ ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
   'Control systems with impossible fortification bonus', 'fortify',
   'These do not have CCCs in enough exploited systems (50% cannot be reached).'
 )
-ctrl_bonus_impossible.setTable(['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo'])
 ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new('Control systems without active fortification bonus where possible', 'fortify')
-ctrl_bonus_incomplete.setTable(['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo'])
 ctrl_weak = AislingDataSet.new('Control systems that are UNFAVORABLE', 'covert')
 ctrl_weak.setTable(['Control System', 'Unfavorable Governments', 'Total Governments', 'From Cubeo'])
 ctrl_radius_income = CCIncomeDataSet.new('Control systems by radius income', 'finance', 'CC values calculated with experimental formulas.')
-ctrl_radius_income.setTable(['Control System', 'Income', 'From Cubeo'])
 ctrl_radius_profit = CCProfitDataSet.new('Control systems by radius profit', 'finance', 'CC values calculated with experimental formulas.')
-ctrl_radius_profit.setTable(['Control System', 'Profit', 'Income', 'Upkeep', 'Overhead', 'From Cubeo'])
 fac_fav_push = FavPushFactionDataSet.new(
   'Best factions to push to get fortification bonus', 'fortify',
   'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.'
 )
-fac_fav_push.setTable(['Faction', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated'])
 fac_fav_war = WarringCCCDataSet.new('Warring favorable factions', 'combat')
-fac_fav_war.setTable(['Faction', 'Type', 'System', 'Sphere', 'From Cubeo', 'Updated'])
 fac_fav_boom = AislingDataSet.new('Booming favorable factions', 'finance')
 fac_fav_boom.setTable(['Faction', 'Updated'])
 

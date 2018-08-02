@@ -1,3 +1,11 @@
+# Settings
+BlacklistIgnore = ['Cubeo']
+BlacklistForitfy = ['Chnumar', 'Daibo', 'Kuki An', 'HIP 10786', 'Grebegus', 'Kaukamal']
+BlacklistManagedByOthers = ['Aurawala']
+BlacklistCombined = BlacklistIgnore + BlacklistForitfy + BlacklistManagedByOthers
+BlacklistText = "*Spheres ignored as DO NOT FORTIFY: #{BlacklistForitfy.join(', ')}*<br>\
+*Spheres ignored as managed by another group of players: #{BlacklistManagedByOthers.join(', ')}*"
+
 # General helper Functions
 def link_to_system(system)
   return "#{system['name']} <sup>[E](https://eddb.io/system/#{system['id']}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system['edsm_id']}/name/#{system['name']}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{system['name']}){:target=\"_blank\"}</sup>"
@@ -43,11 +51,17 @@ class AislingDataSet
     out.puts '{:.card-header}'
     out.puts '<div class="card-body" markdown="1">'
     if @description
-      out.puts "*#{@description}*"
+      out.puts @description
+      out.puts
+    end
+    filterDesc = filterText()
+    if filterDesc
+      out.puts filterDesc
       out.puts
     end
 
     lines = compileLines()
+    @table ||= tableHeader() # Get table header from override if not set manually
     if @table && !lines.empty?
       out.puts '<div class="table-responsive" markdown="1">'
       out.puts '| ' + @table.join(" | ")
@@ -70,6 +84,7 @@ class AislingDataSet
   private
 
   def compileLines
+    filter()
     uniq()
     sort()
     lines = []
@@ -86,6 +101,10 @@ class AislingDataSet
     return item
   end
 
+  def tableHeader
+    return nil
+  end
+
   def sort
     @items.sort!
   end
@@ -93,11 +112,17 @@ class AislingDataSet
   def uniq
     @items.uniq!
   end
+
+  def filter
+    # NOOP
+  end
+
+  def filterText
+    return nil
+  end
 end
 
-# Control System Flip State Data Set
 # Expected Item properties: control_system, active_ccc, active_ccc_r, max_ccc, max_ccc_r, total_govs
-# Added internally (should be in table header): dist_to_cubeo
 class ControlSystemFlipStateDataSet < AislingDataSet
   def itemToString(item)
     active_percent = (100.0 * item[:active_ccc_r]).round(1)
@@ -106,46 +131,80 @@ class ControlSystemFlipStateDataSet < AislingDataSet
     | #{item[:total_govs]} | #{item[:control_system]['dist_to_cubeo']} LY"
   end
 
+  def tableHeader
+    return ['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo']
+  end
+
   def sort
     @items.sort_by! { |x| [-x[:active_ccc_r]] }
   end
+
+  def filter
+    @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
+  end
+
+  def filterText
+    return BlacklistText
+  end
 end
 
-# Fav Push Factions Data Set
 # Expected Item properties: faction, system, influence, control_system
-# Added internally (should be in table header): dist_to_cubeo, updated_at
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | #{item[:influence].round(1)}% \
     | #{link_to_system(item[:control_system])} | #{item[:system]['dist_to_cubeo']} LY | #{updated_at(item[:system])}"
   end
 
+  def tableHeader
+    return ['Faction', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated']
+  end
+
   def sort
     @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:influence]] }
   end
+
+  def filter
+    @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
+  end
+
+  def filterText
+    return BlacklistText
+  end
 end
 
-# Warring CCCs Data Set
 # Expected Item properties: faction, type, system, control_system
-# Added internally (should be in table header): dist_to_cubeo, updated_at
 class WarringCCCDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{item[:type]} | #{link_to_system(item[:system])} | \
     #{link_to_system(item[:control_system])} | #{item[:system]['dist_to_cubeo']} LY | #{updated_at(item[:system])}"
   end
 
+  def tableHeader
+    return ['Faction', 'Type', 'System', 'Sphere', 'From Cubeo', 'Updated']
+  end
+
   def sort
     @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo']] }
   end
+
+  def filter
+    @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
+  end
+
+  def filterText
+    return BlacklistText
+  end
 end
 
-# CC Profit Data Set
 # Expected Item properties: control_system, profit, income, upkeep, overhead
-# Added internally (should be in table header): dist_to_cubeo
 class CCProfitDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_system(item[:control_system])} | #{item[:profit]} CC | #{item[:income]} CC \
     | #{item[:upkeep]} CC | #{item[:overhead]} CC | #{item[:control_system]['dist_to_cubeo']} LY"
+  end
+
+  def tableHeader
+    return ['Control System', 'Profit', 'Income', 'Upkeep', 'Overhead', 'From Cubeo']
   end
 
   def sort
@@ -153,12 +212,14 @@ class CCProfitDataSet < AislingDataSet
   end
 end
 
-# CC Income Data Set
 # Expected Item properties: control_system, income
-# Added internally (should be in table header): dist_to_cubeo
 class CCIncomeDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_system(item[:control_system])} | #{item[:income]} CC | #{item[:control_system]['dist_to_cubeo']} LY"
+  end
+
+  def tableHeader
+    return ['Control System', 'Income', 'From Cubeo']
   end
 
   def sort
