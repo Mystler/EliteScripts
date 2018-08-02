@@ -51,13 +51,17 @@ class AislingDataSet
     lines = compileLines()
 
     if @table && !lines.empty?
+      out.puts '<div class="table-responsive" markdown="1">'
       out.puts '| ' + @table.join(" | ")
       out.puts '| -' * @table.size
     end
     lines.each do |line|
       out.puts "#{@table ? '|' : '-'} #{line}"
     end
-    out.puts "{:.table .table-striped .table-borderless}" if @table && !lines.empty?
+    if @table && !lines.empty?
+      out.puts "{:.table .table-striped .table-borderless}"
+      out.puts '</div>'
+    end
     out.puts 'NONE' if lines.empty?
     out.puts
     out.puts '<div class="text-right"><a href="#">Back to Top</a></div>'
