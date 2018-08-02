@@ -77,6 +77,7 @@ ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
   'These do not have CCCs in enough exploited systems (50% cannot be reached).'
 )
 ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new('Control systems without active fortification bonus where possible', 'fortify')
+ctrl_bonus_active = ControlSystemFlipStateDataSet.new('Control systems with active fortification bonus', 'fortify')
 ctrl_weak = AislingDataSet.new('Control systems that are UNFAVORABLE', 'covert')
 ctrl_weak.setTable(['Control System', 'Unfavorable Governments', 'Total Governments', 'From Cubeo'])
 ctrl_radius_income = CCIncomeDataSet.new('Control systems by radius income', 'finance', 'CC values calculated with experimental formulas.')
@@ -132,13 +133,15 @@ ad_control.each do |ctrl_sys|
   fav_gov = fav_gov_count.to_f / gov_count.to_f
   poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f
   weak_gov = weak_gov_count.to_f / gov_count.to_f
-  if fav_gov < 0.5 && poss_fav_gov >= 0.5
-    ctrl_bonus_incomplete.addItem({control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
-                                   max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count})
+  item = {control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
+          max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count}
+  if fav_gov >= 0.5
+    ctrl_bonus_active.addItem item
+  elsif poss_fav_gov >= 0.5
+    ctrl_bonus_incomplete.addItem item
     fac_fav_push.addItems local_fac_fav_push
-  elsif poss_fav_gov < 0.5
-    ctrl_bonus_impossible.addItem({control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
-                                   max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count})
+  else
+    ctrl_bonus_impossible.addItem item
   end
   ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys['dist_to_cubeo']} LY" if weak_gov >= 0.5
 
@@ -154,6 +157,7 @@ fac_fav_push.write(mdout)
 ctrl_weak.write(mdout)
 fac_fav_war.write(mdout)
 fac_fav_boom.write(mdout)
+ctrl_bonus_active.write(mdout)
 ctrl_bonus_impossible.write(mdout)
 ctrl_radius_income.write(mdout)
 ctrl_radius_profit.write(mdout)
