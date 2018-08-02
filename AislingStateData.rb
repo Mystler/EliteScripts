@@ -142,7 +142,7 @@ class ControlSystemFlipStateDataSet < AislingDataSet
   def itemToString(item)
     active_percent = (100.0 * item[:active_ccc_r]).round(1)
     max_percent = (100.0 * item[:max_ccc_r]).round(1)
-    return "#{link_to_faction(item[:control_system])} | #{item[:active_ccc]} (#{active_percent}%) | #{item[:max_ccc]} (#{max_percent}%) \
+    return "#{link_to_system(item[:control_system])} | #{item[:active_ccc]} (#{active_percent}%) | #{item[:max_ccc]} (#{max_percent}%) \
     | #{item[:total_govs]} | #{item[:control_system]['dist_to_cubeo']} LY"
   end
 
@@ -163,15 +163,15 @@ class ControlSystemFlipStateDataSet < AislingDataSet
   end
 end
 
-# Expected Item properties: faction, system, influence, control_system
+# Expected Item properties: faction (in system object), system, control_system
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | #{item[:influence].round(1)}% \
+    return "#{link_to_faction(item[:faction]['fac'])} | #{item[:faction]['state']} | #{link_to_system(item[:system])} | #{item[:faction]['influence'].round(1)}% \
     | #{link_to_system(item[:control_system])} | #{item[:system]['dist_to_cubeo']} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    return ['Faction', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated']
+    return ['Faction', 'State', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated']
   end
 
   def filter
@@ -183,14 +183,14 @@ class FavPushFactionDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:influence]] }
+    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:faction]['influence']] }
   end
 end
 
-# Expected Item properties: faction, type, system, control_system
+# Expected Item properties: faction (in system object), system, control_system
 class WarringCCCDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction])} | #{item[:type]} | #{link_to_system(item[:system])} | \
+    return "#{link_to_faction(item[:faction]['fac'])} | #{item[:faction]['state']} | #{link_to_system(item[:system])} | \
     #{link_to_system(item[:control_system])} | #{item[:system]['dist_to_cubeo']} LY | #{updated_at(item[:system])}"
   end
 

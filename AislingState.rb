@@ -121,11 +121,11 @@ ad_control.each do |ctrl_sys|
       if !strong_govs.include?(sys['government']) && fac['minor_faction_id'] != sys['government_id']
         best_fav_fac = fac if !best_fav_fac || fac['influence'] > best_fav_fac['influence']
       end
-      fac_fav_war.addItem({faction: fac['fac'], type: fac['state'], system: sys, control_system: ctrl_sys}) if ['Civil War', 'War'].include? fac['state']
+      fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if ['Civil War', 'War'].include? fac['state']
       fac_fav_boom.addItem({faction: fac['fac'], system: sys, control_system: ctrl_sys}) if fac['state'] == 'Boom'
     end
     if best_fav_fac
-      local_fac_fav_push.push({faction: best_fav_fac['fac'], system: sys, influence: best_fav_fac['influence'], control_system: ctrl_sys})
+      local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
     end
   end
 
