@@ -22,7 +22,7 @@ end
 
 # Base class for reports.
 # Only collecting strings as items and printing them in kramdown format.
-# Override the private methods itemToString and sort when working with objects.
+# Override the private methods when working with objects. Preprocessing order is filter, uniq, sort.
 class AislingDataSet
   def initialize(title, icon = nil, description = nil)
     @title = title
@@ -105,20 +105,20 @@ class AislingDataSet
     return nil
   end
 
-  def sort
-    @items.sort!
-  end
-
-  def uniq
-    @items.uniq!
-  end
-
   def filter
     # NOOP
   end
 
   def filterText
     return nil
+  end
+
+  def uniq
+    @items.uniq!
+  end
+
+  def sort
+    @items.sort!
   end
 end
 
@@ -135,16 +135,16 @@ class ControlSystemFlipStateDataSet < AislingDataSet
     return ['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo']
   end
 
-  def sort
-    @items.sort_by! { |x| [-x[:active_ccc_r]] }
-  end
-
   def filter
     @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
   end
 
   def filterText
     return BlacklistText
+  end
+
+  def sort
+    @items.sort_by! { |x| [-x[:active_ccc_r]] }
   end
 end
 
@@ -159,16 +159,16 @@ class FavPushFactionDataSet < AislingDataSet
     return ['Faction', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated']
   end
 
-  def sort
-    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:influence]] }
-  end
-
   def filter
     @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
   end
 
   def filterText
     return BlacklistText
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:influence]] }
   end
 end
 
@@ -183,16 +183,70 @@ class WarringCCCDataSet < AislingDataSet
     return ['Faction', 'Type', 'System', 'Sphere', 'From Cubeo', 'Updated']
   end
 
-  def sort
-    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo']] }
-  end
-
   def filter
     @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
   end
 
   def filterText
     return BlacklistText
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo']] }
+  end
+end
+
+# Add all entries found, this will automatically be reduced to display per faction data
+# Expected Item properties: faction, system, control_system
+class BoomingCCCDataSet < AislingDataSet
+  def itemToString(item)
+    out = "#{link_to_faction(item[:faction])} | "
+    item[:systems].each_with_index do |sys, i|
+      out += '<br>' if i > 0
+      out += link_to_system(sys)
+    end
+    out += ' | '
+    item[:spheres].each_with_index do |sys, i|
+      out += '<br>' if i > 0
+      out += link_to_system(sys)
+    end
+    out += " | #{item[:avg_from_cubeo]} LY | #{updated_at(item[:faction])}"
+    return out
+  end
+
+  def tableHeader
+    return ['Faction', 'Systems', 'Spheres', 'Avg From Cubeo', 'Updated']
+  end
+
+  def uniq
+    factions = []
+    factionSystems = {}
+    factionSpheres = {}
+    @items.each do |item|
+      factions.push item[:faction]
+      if factionSystems[item[:faction]]
+        factionSystems[item[:faction]].push item[:system]
+      else
+        factionSystems[item[:faction]] = [item[:system]]
+      end
+      if factionSpheres[item[:faction]]
+        factionSpheres[item[:faction]].push item[:control_system]
+      else
+        factionSpheres[item[:faction]] = [item[:control_system]]
+      end
+    end
+    @items = []
+    factions.uniq!
+    factions.each do |fac|
+      factionSystems[fac].uniq!
+      factionSpheres[fac].uniq!
+      avg_from_cubeo = (factionSystems[fac].collect { |x| x['dist_to_cubeo'] }.reduce(:+) / factionSystems[fac].size.to_f).round(1)
+      @items.push({faction: fac, systems: factionSystems[fac], spheres: factionSpheres[fac], avg_from_cubeo: avg_from_cubeo})
+    end
+  end
+
+  def sort
+    @items.sort_by! { |x| x[:avg_from_cubeo] }
   end
 end
 
