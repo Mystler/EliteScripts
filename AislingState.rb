@@ -47,8 +47,8 @@ end
 
 # Inject distance to Cubeo into AD systems
 ad_cubeo = ad_control.find { |x| x['name'] == 'Cubeo' }
-ad_control.each do |sys|
-  sys['dist_to_cubeo'] = (sys['location'] - ad_cubeo['location']).r
+(ad_control + ad_exploited).each do |sys|
+  sys['dist_to_cubeo'] = (sys['location'] - ad_cubeo['location']).r.round(1)
 end
 
 # Helpers
@@ -72,26 +72,26 @@ def system_cc_overhead(no_of_systems)
 end
 
 # Collecting data into these
-ctrl_bonus_impossible = AislingDataSet.new(
+ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
   'Control systems with impossible fortification bonus', 'fortify',
   'These do not have CCCs in enough exploited systems (50% cannot be reached).'
 )
-ctrl_bonus_impossible.setTable(['Control System', 'Possible CCC Governments', 'Total Governments'])
-ctrl_bonus_incomplete = AislingDataSet.new('Control systems without active fortification bonus where possible', 'fortify')
-ctrl_bonus_incomplete.setTable(['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments'])
+ctrl_bonus_impossible.setTable(['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo'])
+ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new('Control systems without active fortification bonus where possible', 'fortify')
+ctrl_bonus_incomplete.setTable(['Control System', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo'])
 ctrl_weak = AislingDataSet.new('Control systems that are UNFAVORABLE', 'covert')
-ctrl_weak.setTable(['Control System', 'Unfavorable Governments', 'Total Governments'])
+ctrl_weak.setTable(['Control System', 'Unfavorable Governments', 'Total Governments', 'From Cubeo'])
 ctrl_radius_income = CCIncomeDataSet.new('Control systems by radius income', 'finance', 'CC values calculated with experimental formulas.')
-ctrl_radius_income.setTable(['Control System', 'Income'])
+ctrl_radius_income.setTable(['Control System', 'Income', 'From Cubeo'])
 ctrl_radius_profit = CCProfitDataSet.new('Control systems by radius profit', 'finance', 'CC values calculated with experimental formulas.')
-ctrl_radius_profit.setTable(['Control System', 'Profit', 'Income', 'Upkeep', 'Overhead'])
+ctrl_radius_profit.setTable(['Control System', 'Profit', 'Income', 'Upkeep', 'Overhead', 'From Cubeo'])
 fac_fav_push = FavPushFactionDataSet.new(
   'Best factions to push to get fortification bonus', 'fortify',
   'Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable.'
 )
-fac_fav_push.setTable(['Faction', 'System', 'Influence', 'Sphere', 'Updated'])
-fac_fav_war = AislingDataSet.new('Warring favorable factions', 'combat')
-fac_fav_war.setTable(['Faction', 'Type', 'System', 'Updated'])
+fac_fav_push.setTable(['Faction', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated'])
+fac_fav_war = WarringCCCDataSet.new('Warring favorable factions', 'combat')
+fac_fav_war.setTable(['Faction', 'Type', 'System', 'Sphere', 'From Cubeo', 'Updated'])
 fac_fav_boom = AislingDataSet.new('Booming favorable factions', 'finance')
 fac_fav_boom.setTable(['Faction', 'Updated'])
 
@@ -127,7 +127,7 @@ ad_control.each do |ctrl_sys|
       if !strong_govs.include?(sys['government']) && fac['minor_faction_id'] != sys['government_id']
         best_fav_fac = fac if !best_fav_fac || fac['influence'] > best_fav_fac['influence']
       end
-      fac_fav_war.addItem "#{link_to_faction(fac['fac'])} | #{fac['state']} | #{link_to_system(sys)} | #{updated_at(sys)}" if ['Civil War', 'War'].include? fac['state']
+      fac_fav_war.addItem({faction: fac['fac'], type: fac['state'], system: sys, control_system: ctrl_sys}) if ['Civil War', 'War'].include? fac['state']
       fac_fav_boom.addItem "#{link_to_faction(fac['fac'])} | #{updated_at(fac['fac'])}" if fac['state'] == 'Boom'
     end
     if best_fav_fac
@@ -136,16 +136,18 @@ ad_control.each do |ctrl_sys|
   end
 
   # Analyze
-  fav_gov = fav_gov_count.to_f / gov_count.to_f >= 0.5
-  poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f >= 0.5
-  weak_gov = weak_gov_count.to_f / gov_count.to_f >= 0.5
-  if !fav_gov && poss_fav_gov
-    ctrl_bonus_incomplete.addItem "#{link_to_system(ctrl_sys)} | #{fav_gov_count} | #{poss_fav_gov_count} | #{gov_count}"
+  fav_gov = fav_gov_count.to_f / gov_count.to_f
+  poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f
+  weak_gov = weak_gov_count.to_f / gov_count.to_f
+  if fav_gov < 0.5 && poss_fav_gov >= 0.5
+    ctrl_bonus_incomplete.addItem({control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
+                                   max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count})
     fac_fav_push.addItems local_fac_fav_push
-  elsif !poss_fav_gov
-    ctrl_bonus_impossible.addItem "#{link_to_system(ctrl_sys)} | #{poss_fav_gov_count} | #{gov_count}"
+  elsif poss_fav_gov < 0.5
+    ctrl_bonus_impossible.addItem({control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
+                                   max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count})
   end
-  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count}" if weak_gov
+  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys['dist_to_cubeo']} LY" if weak_gov >= 0.5
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys['dist_to_cubeo'])
