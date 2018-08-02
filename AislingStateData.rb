@@ -17,7 +17,14 @@ end
 
 def updated_at(el)
   time = Time.at(el['updated_at'])
-  return "<u><em class=\"timeago\" datetime=\"#{time}\" data-toggle=\"tooltip\" title=\"#{time}\"></em></u>"
+  daysold = (Time.now - time) / 86400.0
+  colorclass = 'age-green'
+  if daysold > 4
+    colorclass = 'age-red'
+  elsif daysold > 1
+    colorclass = 'age-yellow'
+  end
+  return "<u><em class=\"timeago #{colorclass}\" datetime=\"#{time}\" data-toggle=\"tooltip\" title=\"#{time}\"></em></u>"
 end
 
 # Base class for reports.

@@ -6,28 +6,24 @@ body {
     background-attachment: fixed;
 }
 
-a {
-    color: #0099FF;
-}
+a { color: #0099FF; }
 
-a:hover {
-    color: #77CCFF;
-}
+a:hover { color: #77CCFF; }
 
 u {
     text-decoration: none;
     border-bottom: 1px dashed;
 }
 
-.card {
-    margin-bottom: 1rem;
-}
+.card { margin-bottom: 1rem; }
 
-.bg-darken {
-    background-color: rgba(0, 0, 0, 0.1) !important;
-}
+.bg-darken { background-color: rgba(0, 0, 0, 0.1) !important; }
 
 .ad-icon {
     margin-top: -0.1em;
     height: 1em;
 }
+
+.age-green { color: #0F0; }
+.age-yellow { color: #FF0; }
+.age-red { color: #F00; }
