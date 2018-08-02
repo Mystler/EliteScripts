@@ -7,6 +7,14 @@ BlacklistText = "*Spheres ignored as DO NOT FORTIFY: #{BlacklistForitfy.join(', 
 *Spheres ignored as managed by another group of players: #{BlacklistManagedByOthers.join(', ')}*"
 
 # General helper Functions
+def str_to_id(str)
+  gen_id = str.gsub(/^[^a-zA-Z]+/, '')
+  gen_id.tr!('^a-zA-Z0-9 -', '')
+  gen_id.tr!(' ', '-')
+  gen_id.downcase!
+  gen_id
+end
+
 def link_to_system(system)
   return "#{system['name']} <sup>[E](https://eddb.io/system/#{system['id']}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system['edsm_id']}/name/#{system['name']}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{system['name']}){:target=\"_blank\"}</sup>"
 end
@@ -54,7 +62,7 @@ class AislingDataSet
   def write(out)
     out.puts '<div class="card bg-darken" markdown="1">'
     svg = @icon ? "<img class=\"ad-icon\" alt=\"#{@icon}\" src=\"#{@icon}.svg\"> " : ''
-    out.puts "### #{svg}#{@title}"
+    out.puts "### #{svg}#{@title} {##{str_to_id(@title)}}"
     out.puts '{:.card-header}'
     out.puts '<div class="card-body" markdown="1">'
     if @description
@@ -199,7 +207,7 @@ class WarringCCCDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo']] }
+    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], x[:system]['dist_to_cubeo']] }
   end
 end
 
