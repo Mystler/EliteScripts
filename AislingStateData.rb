@@ -36,7 +36,7 @@ class AislingDataSet
     @table = columns
   end
 
-  def write(out, removeDuplicates = true)
+  def write(out)
     out.puts '<div class="card bg-darken" markdown="1">'
     svg = @icon ? "<img class=\"ad-icon\" alt=\"#{@icon}\" src=\"#{@icon}.svg\"> " : ''
     out.puts "### #{svg}#{@title}"
@@ -47,9 +47,7 @@ class AislingDataSet
       out.puts
     end
 
-    @items.uniq! if removeDuplicates
     lines = compileLines()
-
     if @table && !lines.empty?
       out.puts '<div class="table-responsive" markdown="1">'
       out.puts '| ' + @table.join(" | ")
@@ -72,6 +70,7 @@ class AislingDataSet
   private
 
   def compileLines
+    uniq()
     sort()
     lines = []
     @items.each do |item|
@@ -89,6 +88,10 @@ class AislingDataSet
 
   def sort
     @items.sort!
+  end
+
+  def uniq
+    @items.uniq!
   end
 end
 
