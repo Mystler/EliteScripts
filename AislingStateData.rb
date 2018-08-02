@@ -107,7 +107,7 @@ class ControlSystemFlipStateDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort! { |x, y| y[:active_ccc_r] <=> x[:active_ccc_r] }
+    @items.sort_by! { |x| [-x[:active_ccc_r]] }
   end
 end
 
@@ -121,7 +121,7 @@ class FavPushFactionDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort! { |x, y| y[:influence] <=> x[:influence] }
+    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:influence]] }
   end
 end
 
@@ -135,7 +135,7 @@ class WarringCCCDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort! { |x, y| x[:system]['dist_to_cubeo'] <=> y[:system]['dist_to_cubeo'] }
+    @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo']] }
   end
 end
 
@@ -149,7 +149,7 @@ class CCProfitDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort! { |x, y| y[:profit] <=> x[:profit] }
+    @items.sort_by! { |x| [-x[:profit]] }
   end
 end
 
@@ -162,6 +162,6 @@ class CCIncomeDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort! { |x, y| y[:income] <=> x[:income] }
+    @items.sort_by! { |x| [-x[:income]] }
   end
 end
