@@ -27,8 +27,6 @@ factions = JSON.parse(File.read('data/factions.json'))
 systems = JSON.parse(File.read('data/systems_populated.json'))
 
 # AD specific data subsets
-strong_govs = ['Cooperative', 'Confederacy', 'Communism']
-weak_govs = ['Feudal', 'Prison Colony', 'Theocracy']
 ad_control = systems.select { |x| x['power'] == 'Aisling Duval' && x['power_state'] == 'Control' }
 ad_exploited = systems.select { |x| x['power'] == 'Aisling Duval' && x['power_state'] == 'Exploited' }
 
@@ -52,6 +50,14 @@ ad_cubeo = ad_control.find { |x| x['name'] == 'Cubeo' }
 end
 
 # Helpers
+def is_strong_gov(obj)
+  return ['Cooperative', 'Confederacy', 'Communism'].include?(obj['government']) && obj['allegiance'] != 'Empire'
+end
+
+def is_weak_gov(obj)
+  return ['Feudal', 'Prison Colony', 'Theocracy'].include?(obj['government'])
+end
+
 def system_cc_income(population)
   return 0 if population <= 0
 
@@ -108,17 +114,17 @@ ad_control.each do |ctrl_sys|
   # Process per system
   local_fac_fav_push = []
   exploited.each do |sys|
-    sys_fav_facs = sys['minor_faction_presences'].select { |x| strong_govs.include? x['fac']['government'] }
-    sys_weak_facs = sys['minor_faction_presences'].select { |x| weak_govs.include? x['fac']['government'] }
+    sys_fav_facs = sys['minor_faction_presences'].select { |x| is_strong_gov(x['fac']) }
+    sys_weak_facs = sys['minor_faction_presences'].select { |x| is_weak_gov(x['fac']) }
 
-    fav_gov_count += 1 if strong_govs.include? sys['government']
-    weak_gov_count += 1 if weak_govs.include? sys['government']
+    fav_gov_count += 1 if is_strong_gov(sys)
+    weak_gov_count += 1 if is_weak_gov(sys)
     poss_fav_gov_count += 1 if sys_fav_facs.any?
     radius_income += system_cc_income(sys['population'])
 
     best_fav_fac = nil
     sys_fav_facs.each do |fac|
-      if !strong_govs.include?(sys['government']) && fac['minor_faction_id'] != sys['government_id']
+      if !is_strong_gov(sys) && fac['minor_faction_id'] != sys['government_id']
         best_fav_fac = fac if !best_fav_fac || fac['influence'] > best_fav_fac['influence']
       end
       fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if ['Civil War', 'War'].include? fac['state']
