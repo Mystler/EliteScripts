@@ -41,6 +41,10 @@ class AislingDataSet
     @table = nil
   end
 
+  def hasItems
+    return !@items.empty?
+  end
+
   def addItem(item)
     @items.push item
   end
@@ -157,6 +161,24 @@ class ControlSystemFlipStateDataSet < AislingDataSet
   end
 end
 
+class SimpleControlSystemFlipStateDataSet < AislingDataSet
+  def itemToString(item)
+    active_percent = (100.0 * item[:active_ccc_r]).round(1)
+    max_percent = (100.0 * item[:max_ccc_r]).round(1)
+    priority = (item[:priority] == 1 ? 'Top' : (item[:priority] == 2 ? 'High' : 'Low'))
+    return "#{link_to_system(item[:control_system])} | #{priority} | #{item[:active_ccc]} (#{active_percent}%) | #{item[:max_ccc]} (#{max_percent}%) \
+    | #{item[:total_govs]} | #{item[:control_system]['dist_to_cubeo']} LY"
+  end
+
+  def tableHeader
+    return ['Control System', 'Priority', 'CCC Governments', 'Possible CCC Governments', 'Total Governments', 'From Cubeo']
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:priority], -x[:active_ccc_r]] }
+  end
+end
+
 # Expected Item properties: faction (in system object), system, control_system
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
@@ -178,6 +200,21 @@ class FavPushFactionDataSet < AislingDataSet
 
   def sort
     @items.sort_by! { |x| [x[:control_system]['dist_to_cubeo'], -x[:faction]['influence']] }
+  end
+end
+
+class SimpleFavPushFactionDataSet < AislingDataSet
+  def itemToString(item)
+    return "#{link_to_faction(item[:faction]['fac'])} | #{item[:faction]['state']} | #{link_to_system(item[:system])} | #{item[:faction]['influence'].round(1)}% \
+    | #{link_to_system(item[:control_system])} | #{item[:system]['dist_to_cubeo']} LY | #{updated_at(item[:system])}"
+  end
+
+  def tableHeader
+    return ['Faction', 'State', 'System', 'Influence', 'Sphere', 'From Cubeo', 'Updated']
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:priority], x[:control_system]['dist_to_cubeo'], -x[:faction]['influence']] }
   end
 end
 

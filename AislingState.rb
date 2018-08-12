@@ -4,23 +4,37 @@ require 'json'
 require 'matrix'
 require 'kramdown'
 
+require_relative 'AislingStateConfig'
 require_relative 'AislingStateData'
 
-mdout = StringIO.new
+advancedOut = StringIO.new
+simpleOut = StringIO.new
 
-mdout.puts '# Aisling Duval Report'
-mdout.puts '{:.no_toc .text-center}'
-mdout.puts '<p class="text-center"><img alt="Aisling Duval" src="aisling-duval.svg" width="200" height="200"></p>'
-mdout.puts "<p class=\"text-center\">Generated: <u><em class=\"timeago\" datetime=\"#{Time.now}\" data-toggle=\"tooltip\" title=\"#{Time.now}\"></em></u></p>"
-mdout.puts
-mdout.puts '<div class="card bg-darken">'
-mdout.puts '  <h3 class="card-header">Table of Contents</h3>'
-mdout.puts '  <div class="card-body" markdown="1">'
-mdout.puts '* TOC Entry'
-mdout.puts '{:toc}'
-mdout.puts '  </div>'
-mdout.puts '</div>'
-mdout.puts
+# Write headers
+[advancedOut, simpleOut].each do |out|
+  out.puts '# Aisling Duval Report'
+  out.puts '{:.no_toc .text-center}'
+  out.puts '<p class="text-center"><img alt="Aisling Duval" src="aisling-duval.svg" width="200" height="200"></p>'
+  out.puts "<p class=\"text-center\">Generated: <u><em class=\"timeago\" datetime=\"#{Time.now}\" data-toggle=\"tooltip\" title=\"#{Time.now}\"></em></u></p>"
+  out.puts '<p class="text-center" markdown="1">'
+  if out == simpleOut
+    out.puts 'This is the simple report, based on priority targets and intended to help focus our BGS efforts.\\\\'
+    out.puts 'For an unfiltered, advanced report [click here](advanced.html).'
+  else
+    out.puts 'This is the advanced report without filters and priorities, intended for full information and overview.\\\\'
+    out.puts 'For the simple report for players [click here](index.html).'
+  end
+  out.puts '</p>'
+  out.puts
+  out.puts '<div class="card bg-darken">'
+  out.puts '  <h3 class="card-header">Table of Contents</h3>'
+  out.puts '  <div class="card-body" markdown="1">'
+  out.puts '* TOC Entry'
+  out.puts '{:toc}'
+  out.puts '  </div>'
+  out.puts '</div>'
+  out.puts
+end
 
 # Total data
 factions = JSON.parse(File.read('data/factions.json'))
@@ -95,6 +109,15 @@ fac_fav_push = FavPushFactionDataSet.new(
 fac_fav_war = WarringCCCDataSet.new('Warring favorable factions', 'combat')
 fac_fav_boom = BoomingCCCDataSet.new('Booming favorable factions', 'finance')
 
+simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
+  'Control systems to focus on', 'fortify',
+  'These are the systems we want to flip next.'
+)
+simple_fac_push = SimpleFavPushFactionDataSet.new(
+  'Best factions to push', 'fortify',
+  'Shows the best CCC factions in their system for all our priority spheres.'
+)
+
 # Process AD data
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
 ad_control.each do |ctrl_sys|
@@ -110,6 +133,8 @@ ad_control.each do |ctrl_sys|
   weak_gov_count = 0
   poss_fav_gov_count = 0
   radius_income = 0
+
+  priority = 9999 unless priority = AislingStateConfig.prioritySpheres[ctrl_sys['name']]
 
   # Process per system
   local_fac_fav_push = []
@@ -132,6 +157,7 @@ ad_control.each do |ctrl_sys|
     end
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
+      simple_fac_push.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
     end
   end
 
@@ -140,7 +166,7 @@ ad_control.each do |ctrl_sys|
   poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f
   weak_gov = weak_gov_count.to_f / gov_count.to_f
   item = {control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
-          max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count}
+          max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count, priority: priority}
   if fav_gov >= 0.5
     ctrl_bonus_active.addItem item
   elsif poss_fav_gov >= 0.5
@@ -149,6 +175,7 @@ ad_control.each do |ctrl_sys|
   else
     ctrl_bonus_impossible.addItem item
   end
+  simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys['name']
   ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys['dist_to_cubeo']} LY" if weak_gov >= 0.5
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
@@ -158,17 +185,23 @@ ad_control.each do |ctrl_sys|
 end
 
 # Output
-ctrl_bonus_incomplete.write(mdout)
-fac_fav_push.write(mdout)
-ctrl_weak.write(mdout)
-fac_fav_war.write(mdout)
-fac_fav_boom.write(mdout)
-ctrl_bonus_active.write(mdout)
-ctrl_bonus_impossible.write(mdout)
-ctrl_radius_income.write(mdout)
-ctrl_radius_profit.write(mdout)
+ctrl_bonus_incomplete.write(advancedOut)
+fac_fav_push.write(advancedOut)
+ctrl_weak.write(advancedOut)
+fac_fav_war.write(advancedOut)
+fac_fav_boom.write(advancedOut)
+ctrl_bonus_active.write(advancedOut)
+ctrl_bonus_impossible.write(advancedOut)
+ctrl_radius_income.write(advancedOut)
+ctrl_radius_profit.write(advancedOut)
 
-# Write to file
+simple_spherestate.write(simpleOut) if simple_spherestate.hasItems()
+simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
+
+# Write to files
+File.open('html/advanced.html', 'w') do |f|
+  f.write Kramdown::Document.new(advancedOut.string, {template: 'AislingState.erb'}).to_html
+end
 File.open('html/index.html', 'w') do |f|
-  f.write Kramdown::Document.new(mdout.string, {template: 'AislingState.erb'}).to_html
+  f.write Kramdown::Document.new(simpleOut.string, {template: 'AislingState.erb'}).to_html
 end
