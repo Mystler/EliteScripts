@@ -4,6 +4,7 @@ require 'json'
 require 'matrix'
 require 'kramdown'
 
+require_relative 'lib/EDSMClient'
 require_relative 'AislingStateConfig'
 require_relative 'AislingStateData'
 
@@ -72,6 +73,10 @@ def is_weak_gov(obj)
   return ['Feudal', 'Prison Colony', 'Theocracy'].include?(obj['government'])
 end
 
+def is_conflicting(state)
+  return ['Civil War', 'War'].include? state
+end
+
 def system_cc_income(population)
   return 0 if population <= 0
 
@@ -117,6 +122,11 @@ simple_fac_push = SimpleFavPushFactionDataSet.new(
   'Best factions to push', 'fortify',
   'Shows the best CCC factions in their system for all our priority spheres.'
 )
+simple_data_drops = StationDropDataSet.new(
+  'Recommended stations for data drops', 'finance',
+  'Stations with factions we want to push in control.'
+)
+simple_fac_war = SimpleWarringCCCDataSet.new('Wars to support', 'combat')
 
 # Process AD data
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
@@ -152,12 +162,30 @@ ad_control.each do |ctrl_sys|
       if !is_strong_gov(sys) && fac['minor_faction_id'] != sys['government_id']
         best_fav_fac = fac if !best_fav_fac || fac['influence'] > best_fav_fac['influence']
       end
-      fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if ['Civil War', 'War'].include? fac['state']
+      fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if is_conflicting(fac['state'])
       fac_fav_boom.addItem({faction: fac['fac'], system: sys, control_system: ctrl_sys}) if fac['state'] == 'Boom'
     end
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
       simple_fac_push.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
+    end
+
+    if priority <= 3 and best_fav_fac
+      if is_conflicting(best_fav_fac['state'])
+        simple_fac_war.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority})
+      end
+      edsm_stations = EDSMClient.getSystemStations(sys['name'])['stations']
+      ccc_stations = edsm_stations.select { |x| x['controllingFaction']['name'] == best_fav_fac['fac']['name'] }
+      edsm_factions = EDSMClient.getSystemFactions(sys['name'])['factions'] unless ccc_stations.empty?
+      ccc_stations.each do |station|
+        edsm_fac = edsm_factions.find { |x| x['name'] == station['controllingFaction']['name'] }
+        edsm_fac_pending = []
+        edsm_fac_pending = edsm_fac['pendingStates'].collect { |x| x['state'] } if edsm_fac['pendingStates']
+        if !is_conflicting(edsm_fac['state']) and !edsm_fac_pending.find { |x| is_conflicting(x) }
+          simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac,
+                                     state: edsm_fac['state'], priority: priority})
+        end
+      end
     end
   end
 
@@ -195,8 +223,10 @@ ctrl_bonus_impossible.write(advancedOut)
 ctrl_radius_income.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
 
-simple_spherestate.write(simpleOut) if simple_spherestate.hasItems()
-simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
+simple_spherestate.write(simpleOut)
+simple_fac_push.write(simpleOut)
+simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
+simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
 
 # Write to files
 File.open('html/advanced.html', 'w') do |f|

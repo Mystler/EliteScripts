@@ -242,6 +242,21 @@ class WarringCCCDataSet < AislingDataSet
   end
 end
 
+class SimpleWarringCCCDataSet < AislingDataSet
+  def itemToString(item)
+    return "#{link_to_faction(item[:faction]['fac'])} | #{item[:faction]['state']} | #{link_to_system(item[:system])} | \
+    #{link_to_system(item[:control_system])} | #{item[:system]['dist_to_cubeo']} LY | #{updated_at(item[:system])}"
+  end
+
+  def tableHeader
+    return ['Faction', 'Type', 'System', 'Sphere', 'From Cubeo', 'Updated']
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:priority], x[:control_system]['dist_to_cubeo'], x[:system]['dist_to_cubeo']] }
+  end
+end
+
 # Add all entries found, this will automatically be reduced to display per faction data
 # Expected Item properties: faction, system, control_system
 class BoomingCCCDataSet < AislingDataSet
@@ -324,5 +339,20 @@ class CCIncomeDataSet < AislingDataSet
 
   def sort
     @items.sort_by! { |x| [-x[:income]] }
+  end
+end
+
+# Expected Item properties: control_system, system, station, faction, state, priority
+class StationDropDataSet < AislingDataSet
+  def itemToString(item)
+    return "#{item[:station]['name']} | #{link_to_faction(item[:faction]['fac'])} | #{item[:state]} | #{link_to_system(item[:system])} | #{link_to_system(item[:control_system])} | #{(item[:station]['distanceToArrival']).round(1)} Ls | #{item[:system]['dist_to_cubeo']} LY"
+  end
+
+  def tableHeader
+    return ['Station', 'Faction', 'State', 'System', 'Control System', 'To Station', 'From Cubeo']
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:priority], -x[:faction]['influence']] }
   end
 end
