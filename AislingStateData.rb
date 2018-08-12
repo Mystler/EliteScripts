@@ -1,10 +1,4 @@
-# Settings
-BlacklistIgnore = ['Cubeo']
-BlacklistForitfy = ['Chnumar', 'Daibo', 'Kuki An', 'HIP 10786', 'Grebegus', 'Kaukamal']
-BlacklistManagedByOthers = ['Aurawala']
-BlacklistCombined = BlacklistIgnore + BlacklistForitfy + BlacklistManagedByOthers
-BlacklistText = "*Spheres ignored as DO NOT FORTIFY: #{BlacklistForitfy.join(', ')}*<br>\
-*Spheres ignored as managed by another group of players: #{BlacklistManagedByOthers.join(', ')}*"
+require_relative 'AislingStateConfig'
 
 # General helper Functions
 def str_to_id(str)
@@ -151,11 +145,11 @@ class ControlSystemFlipStateDataSet < AislingDataSet
   end
 
   def filter
-    @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
+    @items.reject! { |x| AislingStateConfig.blacklistCombined.include?(x[:control_system]['name']) }
   end
 
   def filterText
-    return BlacklistText
+    return AislingStateConfig.blacklistText
   end
 
   def sort
@@ -175,11 +169,11 @@ class FavPushFactionDataSet < AislingDataSet
   end
 
   def filter
-    @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
+    @items.reject! { |x| AislingStateConfig.blacklistCombined.include?(x[:control_system]['name']) }
   end
 
   def filterText
-    return BlacklistText
+    return AislingStateConfig.blacklistText
   end
 
   def sort
@@ -199,11 +193,11 @@ class WarringCCCDataSet < AislingDataSet
   end
 
   def filter
-    @items.reject! { |x| BlacklistCombined.include?(x[:control_system]['name']) }
+    @items.reject! { |x| AislingStateConfig.blacklistCombined.include?(x[:control_system]['name']) }
   end
 
   def filterText
-    return BlacklistText
+    return AislingStateConfig.blacklistText
   end
 
   def sort
