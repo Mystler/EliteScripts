@@ -224,7 +224,7 @@ ctrl_radius_income.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
 
 simple_spherestate.write(simpleOut)
-simple_fac_push.write(simpleOut)
+simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
 simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
 simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
 
