@@ -66,15 +66,15 @@ end
 
 # Helpers
 def is_strong_gov(obj)
-  return ['Cooperative', 'Confederacy', 'Communism'].include?(obj['government']) && obj['allegiance'] != 'Empire'
+  return ['cooperative', 'confederacy', 'communism'].include?(obj['government'].downcase) && obj['allegiance'] != 'Empire'
 end
 
 def is_weak_gov(obj)
-  return ['Feudal', 'Prison Colony', 'Theocracy'].include?(obj['government'])
+  return ['feudal', 'prison colony', 'theocracy'].include?(obj['government'].downcase)
 end
 
 def is_conflicting(state)
-  return ['Civil War', 'War'].include? state
+  return ['civil war', 'war'].include?(state.downcase)
 end
 
 def system_cc_income(population)
@@ -116,7 +116,7 @@ fac_fav_boom = BoomingCCCDataSet.new('Booming favorable factions', 'finance')
 
 simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
   'Control systems to focus on', 'fortify',
-  'These are the systems we want to flip next.'
+  'These are the spheres we want to flip next.'
 )
 simple_fac_push = SimpleFavPushFactionDataSet.new(
   'Best factions to push', 'fortify',
