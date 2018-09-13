@@ -174,16 +174,18 @@ ad_control.each do |ctrl_sys|
       if is_conflicting(best_fav_fac['state'])
         simple_fac_war.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority})
       end
-      edsm_stations = EDSMClient.getSystemStations(sys['name'])['stations']
-      ccc_stations = edsm_stations.select { |x| x['controllingFaction']['name'] == best_fav_fac['fac']['name'] }
-      edsm_factions = EDSMClient.getSystemFactions(sys['name'])['factions'] unless ccc_stations.empty?
-      ccc_stations.each do |station|
-        edsm_fac = edsm_factions.find { |x| x['name'] == station['controllingFaction']['name'] }
-        edsm_fac_pending = []
-        edsm_fac_pending = edsm_fac['pendingStates'].collect { |x| x['state'] } if edsm_fac['pendingStates']
-        if !is_conflicting(edsm_fac['state']) and !edsm_fac_pending.find { |x| is_conflicting(x) }
-          simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac,
-                                     state: edsm_fac['state'], priority: priority})
+      if !is_conflicting(best_fav_fac['fac']['state'])
+        edsm_stations = EDSMClient.getSystemStations(sys['name'])['stations']
+        ccc_stations = edsm_stations.select { |x| x['controllingFaction']['name'] == best_fav_fac['fac']['name'] }
+        edsm_factions = EDSMClient.getSystemFactions(sys['name'])['factions'] unless ccc_stations.empty?
+        ccc_stations.each do |station|
+          edsm_fac = edsm_factions.find { |x| x['name'] == station['controllingFaction']['name'] }
+          edsm_fac_pending = []
+          edsm_fac_pending = edsm_fac['pendingStates'].collect { |x| x['state'] } if edsm_fac['pendingStates']
+          if !is_conflicting(edsm_fac['state']) and !edsm_fac_pending.find { |x| is_conflicting(x) }
+            simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac,
+                                       state: edsm_fac['state'], priority: priority})
+          end
         end
       end
     end
