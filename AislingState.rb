@@ -55,6 +55,8 @@ systems.each do |sys|
   sys["government_fac"] = faction_lookup[sys["government_id"]]
   sys["minor_faction_presences"].each do |fac|
     fac["fac"] = faction_lookup[fac["minor_faction_id"]]
+    fac["active_states_names"] = fac["active_states"].collect { |x| x["name"] }
+    fac["pending_states_names"] = fac["pending_states"].collect { |x| x["name"] }
   end
 end
 
@@ -75,8 +77,8 @@ def is_weak_gov(obj)
   return ["feudal", "prison colony", "theocracy"].include?(obj["government"].downcase)
 end
 
-def is_conflicting(state)
-  return ["civil war", "war"].include?(state.downcase)
+def is_conflicting(states)
+  return (["civil war", "war"] & states.collect { |x| x.downcase }).any?
 end
 
 def system_cc_income(population)
@@ -164,8 +166,8 @@ ad_control.each do |ctrl_sys|
       if !is_strong_gov(sys) && fac["minor_faction_id"] != sys["government_id"]
         best_fav_fac = fac if !best_fav_fac || fac["influence"] > best_fav_fac["influence"]
       end
-      fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if is_conflicting(fac["state"])
-      fac_fav_boom.addItem({faction: fac["fac"], system: sys, control_system: ctrl_sys}) if fac["state"] == "Boom"
+      fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if is_conflicting(fac["active_states_names"])
+      fac_fav_boom.addItem({faction: fac["fac"], system: sys, control_system: ctrl_sys}) if fac["active_states_names"].include?("Boom")
     end
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
@@ -173,21 +175,14 @@ ad_control.each do |ctrl_sys|
     end
 
     if priority <= 3 and best_fav_fac
-      if is_conflicting(best_fav_fac["state"])
+      if is_conflicting(best_fav_fac["active_states_names"])
         simple_fac_war.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority})
       end
-      if !is_conflicting(best_fav_fac["fac"]["state"])
+      if !is_conflicting(best_fav_fac["active_states_names"]) && !is_conflicting(best_fav_fac["pending_states_names"])
         edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
         ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["name"] == best_fav_fac["fac"]["name"] }
-        edsm_factions = EDSMClient.getSystemFactions(sys["name"])["factions"] unless ccc_stations.empty?
         ccc_stations.each do |station|
-          edsm_fac = edsm_factions.find { |x| x["name"] == station["controllingFaction"]["name"] }
-          edsm_fac_pending = []
-          edsm_fac_pending = edsm_fac["pendingStates"].collect { |x| x["state"] } if edsm_fac["pendingStates"]
-          if !is_conflicting(edsm_fac["state"]) and !edsm_fac_pending.find { |x| is_conflicting(x) }
-            simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac,
-                                       state: edsm_fac["state"], priority: priority})
-          end
+          simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac, priority: priority})
         end
       end
     end
