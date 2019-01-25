@@ -336,6 +336,21 @@ class CCProfitDataSet < AislingDataSet
   end
 end
 
+# Expected Item properties: control_system, upkeep
+class CCUpkeepDataSet < AislingDataSet
+  def itemToString(item)
+    return "#{link_to_system(item[:control_system])} | #{item[:upkeep]} CC | #{item[:control_system]["dist_to_cubeo"]} LY"
+  end
+
+  def tableHeader
+    return ["Control System", "Upkeep", "From Cubeo"]
+  end
+
+  def sort
+    @items.sort_by! { |x| [-x[:upkeep]] }
+  end
+end
+
 # Expected Item properties: control_system, income
 class CCIncomeDataSet < AislingDataSet
   def itemToString(item)

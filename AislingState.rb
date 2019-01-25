@@ -109,8 +109,9 @@ ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems witho
 ctrl_bonus_active = ControlSystemFlipStateDataSet.new("Control systems with active fortification bonus", "fortify")
 ctrl_weak = AislingDataSet.new("Control systems that are UNFAVORABLE", "covert")
 ctrl_weak.setTable(["Control System", "Unfavorable Governments", "Total Governments", "From Cubeo"])
+ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance", "CC values calculated with experimental formulas.")
+ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", "CC values calculated with experimental formulas.")
 ctrl_radius_income = CCIncomeDataSet.new("Control systems by radius income", "finance", "CC values calculated with experimental formulas.")
-ctrl_radius_profit = CCProfitDataSet.new("Control systems by radius profit", "finance", "CC values calculated with experimental formulas.")
 fac_fav_push = FavPushFactionDataSet.new(
   "Best factions to push to get fortification bonus", "fortify",
   "Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable."
@@ -207,6 +208,7 @@ ad_control.each do |ctrl_sys|
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys["dist_to_cubeo"])
+  ctrl_upkeep.addItem({control_system: ctrl_sys, upkeep: upkeep})
   radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
   ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: ad_system_cc_overhead})
 end
@@ -219,8 +221,9 @@ fac_fav_war.write(advancedOut)
 fac_fav_boom.write(advancedOut)
 ctrl_bonus_active.write(advancedOut)
 ctrl_bonus_impossible.write(advancedOut)
-ctrl_radius_income.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
+ctrl_upkeep.write(advancedOut)
+ctrl_radius_income.write(advancedOut)
 
 simple_spherestate.write(simpleOut)
 simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
