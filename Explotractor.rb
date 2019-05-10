@@ -1,25 +1,17 @@
-require "csv"
 require "clipboard"
+require_relative "lib/EliteJournal"
 
-# Sight Tracking
+# Sight Tracking Initialization
 travelDist = 0
 scans = {}
 probes = {}
 
 # Read and count data
-CSV.foreach(ARGV[0], headers: true) do |row|
-  # Get max travel distance if available
-  if row["Travel Dist"] && row["Travel Dist"].to_f > travelDist
-    travelDist = row["Travel Dist"].to_f
-  end
-
-  # Get scan and probe counts
-  if row["Event"].start_with?("Detailed scan") || row["Event"].start_with?("Autoscan") && !row["Event"].include?("Belt Cluster")
-    bodyType = row["Description"].split(",")[0]
-    scans[bodyType] = scans[bodyType].to_i.next
-  elsif row["Event"] == "SAA Scan Complete"
-    mdata = /.*Probes:(\d+),.*/.match(row["Description"])
-    proberange = case mdata[1].to_i
+EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], ARGV[0], ARGV[1] ? ARGV[1] : nil) do |entry|
+  if entry["event"] == "FSDJump"
+    travelDist += entry["JumpDist"]
+  elsif entry["event"] == "SAAScanComplete"
+    proberange = case entry["ProbesUsed"]
                  when 1..5
                    "1 to 5"
                  when 6..10
@@ -32,6 +24,18 @@ CSV.foreach(ARGV[0], headers: true) do |row|
                    "Over 30"
                  end
     probes[proberange] = probes[proberange].to_i.next
+  elsif entry["event"] == "Scan" && ["Detailed", "Basic", "AutoScan"].include?(entry["ScanType"])
+    next if entry["BodyName"].include?("Belt Cluster")
+    if entry["StarType"]
+      bodyType = entry["StarType"]
+      if ["O", "B", "A", "F", "G", "K", "M", "L", "T", "Y", "TTS"].include?(bodyType)
+        bodyType = "O, B, A, F, G, K, M, L, T, Y stars"
+      end
+      scans[bodyType] = scans[bodyType].to_i.next
+    elsif entry["PlanetClass"]
+      bodyType = entry["PlanetClass"]
+      scans[bodyType] = scans[bodyType].to_i.next
+    end
   end
 end
 
@@ -40,7 +44,7 @@ puts "----------------"
 puts
 
 out = StringIO.new
-out.puts "+#{travelDist} LY traveled"
+out.puts "+#{travelDist.round(2)} LY traveled"
 scans.sort_by { |k, v| -v }.each do |body, scans|
   out.puts "+#{scans} scans of #{body}"
 end
@@ -52,4 +56,3 @@ Clipboard.copy out.string
 
 puts
 puts "Report has been copied to your clipboard!"
-gets
