@@ -7,7 +7,7 @@ scans = {}
 probes = {}
 
 # Read and count data
-EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], ARGV[0], ARGV[1] ? ARGV[1] : nil) do |entry|
+EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], ARGV[0], ARGV[1]) do |entry|
   if entry["event"] == "FSDJump"
     travelDist += entry["JumpDist"]
   elsif entry["event"] == "SAAScanComplete"

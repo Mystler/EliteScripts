@@ -5,6 +5,10 @@ class EliteJournal
   # Events being nil will load all events, supply an array please!!!
   # Start and end time will be parsed from strings.
   def self.each(events, starttime, endtime = nil)
+    if starttime == nil
+      puts "ERROR: Please specify start time!"
+      exit
+    end
     tstart = Time.parse(starttime)
     tend = Time.parse(endtime) if endtime
     Dir.chdir("C:\\Users\\#{ENV["USERNAME"]}\\Saved Games\\Frontier Developments\\Elite Dangerous") do
