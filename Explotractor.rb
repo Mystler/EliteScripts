@@ -1,5 +1,15 @@
 require "clipboard"
+require_relative "lib/Interactive"
 require_relative "lib/EliteJournal"
+
+# User Prompts
+starttime = Interactive.UserInputPrompt("Please enter your timespan (timestamps using the ISO 8601 standard).", "Start Time")
+puts
+endtime = Interactive.UserInputPrompt("Optional parameter, no value or 0 will process all data up to now.", "End Time")
+puts
+puts "Processing..."
+puts
+puts
 
 # Sight Tracking Initialization
 travelDist = 0
@@ -7,7 +17,7 @@ scans = {}
 probes = {}
 
 # Read and count data
-EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], ARGV[0], ARGV[1]) do |entry|
+EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do |entry|
   if entry["event"] == "FSDJump"
     travelDist += entry["JumpDist"]
   elsif entry["event"] == "SAAScanComplete"
@@ -56,3 +66,5 @@ Clipboard.copy out.string
 
 puts
 puts "Report has been copied to your clipboard!"
+puts "Press enter to quit..."
+Interactive.GetInputOrArg()
