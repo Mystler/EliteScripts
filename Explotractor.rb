@@ -2,8 +2,15 @@ require "clipboard"
 require_relative "lib/Interactive"
 require_relative "lib/EliteJournal"
 
+puts "================"
+puts "= Explotractor ="
+puts "================"
+puts
+puts "Welcome, this will generate your personal scan, map, and travel report for the Prismatic Imperium, Branch of Sight."
+puts
+
 # User Prompts
-starttime = Interactive.UserInputPrompt("Please enter your timespan (timestamps using the ISO 8601 standard).", "Start Time")
+starttime = Interactive.UserInputPrompt("Please enter your data timespan. (ISO 8601 format recommended, e.g. 2019-05-20 or 2019-05-20T12:34:56+2)", "Start Time")
 puts
 endtime = Interactive.UserInputPrompt("Optional parameter, no value or 0 will process all data up to now.", "End Time")
 puts

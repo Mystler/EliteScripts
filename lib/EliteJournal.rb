@@ -14,8 +14,15 @@ class EliteJournal
       Interactive.GetInputOrArg()
       exit
     end
-    tstart = Time.parse(starttime)
-    tend = Time.parse(endtime) if endtime
+    begin
+      tstart = Time.parse(starttime)
+      tend = Time.parse(endtime) if endtime
+    rescue
+      puts "ERROR: Could not parse entered date/time."
+      puts "Press enter to quit!"
+      Interactive.GetInputOrArg()
+      exit
+    end
     Dir.chdir("C:\\Users\\#{ENV["USERNAME"]}\\Saved Games\\Frontier Developments\\Elite Dangerous") do
       Dir["*.log"].sort { |a, b| File.mtime(b) <=> File.mtime(a) }.each do |logfile|
         # Sorted descending by last modification, so before start time means files are irrelevant now.
