@@ -43,8 +43,22 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
     scannedBodies.push entry["BodyName"]
     if entry["StarType"]
       bodyType = entry["StarType"]
-      if ["O", "B", "A", "F", "G", "K", "M", "L", "T", "Y", "TTS"].include?(bodyType)
+      if ["O", "B", "A", "F", "G", "K", "M", "L", "T", "Y"].include?(bodyType)
         bodyType = "O, B, A, F, G, K, M, L, T, Y stars"
+      elsif ["TTS", "AeBe"].include?(bodyType)
+        bodyType = "Proto (AeBe/T Tauri) stars"
+      elsif ["W", "WN", "WNC", "WC", "WO"].include?(bodyType)
+        bodyType = "Wolf-Rayet stars"
+      elsif ["CS", "C", "CN", "CJ", "CH", "CHd", "MS", "S"].include?(bodyType)
+        bodyType = "Carbon stars"
+      elsif ["D", "DA", "DAB", "DAO", "DAZ", "DAV", "DB", "DBZ", "DBV", "DO", "DOV", "DQ", "DC", "DCV", "DX"].include?(bodyType)
+        bodyType = "White dwarf stars"
+      elsif ["A_BlueWhiteSuperGiant", "F_WhiteSuperGiant", "M_RedSuperGiant", "M_RedGiant", "K_OrangeGiant"].include?(bodyType)
+        bodyType = "Giant stars"
+      elsif ["H", "SupermassiveBlackHole"].include?(bodyType)
+        bodyType = "Black Holes"
+      elsif ["N"].include?(bodyType)
+        bodyType = "Neutron stars"
       end
       scans[bodyType] = scans[bodyType].to_i.next
     elsif entry["PlanetClass"]
