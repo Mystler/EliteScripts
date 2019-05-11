@@ -16,6 +16,9 @@ travelDist = 0
 scans = {}
 probes = {}
 
+# Failsafe track Bodies to exclude possible double scans after mapping
+scannedBodies = []
+
 # Read and count data
 EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do |entry|
   if entry["event"] == "FSDJump"
@@ -36,6 +39,8 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
     probes[proberange] = probes[proberange].to_i.next
   elsif entry["event"] == "Scan" && ["Detailed", "Basic", "AutoScan"].include?(entry["ScanType"])
     next if entry["BodyName"].include?("Belt Cluster")
+    next if scannedBodies.include? entry["BodyName"]
+    scannedBodies.push entry["BodyName"]
     if entry["StarType"]
       bodyType = entry["StarType"]
       if ["O", "B", "A", "F", "G", "K", "M", "L", "T", "Y", "TTS"].include?(bodyType)
