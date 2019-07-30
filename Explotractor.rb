@@ -31,27 +31,31 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
   if entry["event"] == "FSDJump"
     travelDist += entry["JumpDist"]
   elsif entry["event"] == "SAAScanComplete"
-    proberange = case entry["ProbesUsed"]
-                 when 1..5
-                   "1 to 5"
-                 when 6..10
-                   "6 to 10"
-                 when 11..20
-                   "11 to 20"
-                 when 21..30
-                   "21 to 30"
-                 when 31..Float::INFINITY
-                   "Over 30"
+    proberange = case entry["EfficiencyTarget"]
+                 when 2..5
+                   "2 to 5"
+                 when 6..11
+                   "6 to 11"
+                 when 12..18
+                   "12 to 18"
+                 when 19..22
+                   "19 to 22"
+                 when 23..Float::INFINITY
+                   "Over 23"
+                 else
+                   nil
                  end
-    probes[proberange] = probes[proberange].to_i.next
+    probes[proberange] = probes[proberange].to_i.next if proberange
   elsif entry["event"] == "Scan" && ["Detailed", "Basic", "AutoScan"].include?(entry["ScanType"])
     next if entry["BodyName"].include?("Belt Cluster")
     next if scannedBodies.include? entry["BodyName"]
     scannedBodies.push entry["BodyName"]
     if entry["StarType"]
       bodyType = entry["StarType"]
-      if ["O", "B", "A", "F", "G", "K", "M", "L", "T", "Y"].include?(bodyType)
-        bodyType = "O, B, A, F, G, K, M, L, T, Y stars"
+      if ["O", "B", "A", "F", "G", "K", "M"].include?(bodyType)
+        bodyType = "Main Sequence Stars (O, B, A, F, G, K, M)"
+      elsif ["L", "T", "Y"].include?(bodyType)
+        bodyType = "Brown Dwarves (L, T, Y)"
       elsif ["TTS", "AeBe"].include?(bodyType)
         bodyType = "Proto (AeBe/T Tauri) stars"
       elsif ["W", "WN", "WNC", "WC", "WO"].include?(bodyType)
