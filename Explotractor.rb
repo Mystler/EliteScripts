@@ -19,17 +19,20 @@ puts
 puts
 
 # Sight Tracking Initialization
-travelDist = 0
+travel_dist = 0
 scans = {}
 probes = {}
 
 # Failsafe track Bodies to exclude possible double scans after mapping
-scannedBodies = []
+scannes_bodies = []
+
+# Track binary/trinary/etc. systems by storing their highest star designation (B, C, D, ...)
+systems_highest_star_letter = {}
 
 # Read and count data
 EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do |entry|
   if entry["event"] == "FSDJump"
-    travelDist += entry["JumpDist"]
+    travel_dist += entry["JumpDist"]
   elsif entry["event"] == "SAAScanComplete"
     proberange = case entry["EfficiencyTarget"]
                  when 2..5
@@ -48,9 +51,10 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
     probes[proberange] = probes[proberange].to_i.next if proberange
   elsif entry["event"] == "Scan" && ["Detailed", "Basic", "AutoScan"].include?(entry["ScanType"])
     next if entry["BodyName"].include?("Belt Cluster")
-    next if scannedBodies.include? entry["BodyName"]
-    scannedBodies.push entry["BodyName"]
+    next if scannes_bodies.include? entry["BodyName"]
+    scannes_bodies.push entry["BodyName"]
     if entry["StarType"]
+      # Star body type counting
       bodyType = entry["StarType"]
       if ["O", "B", "A", "F", "G", "K", "M"].include?(bodyType)
         bodyType = "Main Sequence Stars (O, B, A, F, G, K, M)"
@@ -72,6 +76,13 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
         bodyType = "Neutron stars"
       end
       scans[bodyType] = scans[bodyType].to_i.next
+
+      # Store highest main star designation
+      if m_data = entry["BodyName"].match(/(.*) ([B-Z])\Z/)
+        if (!systems_highest_star_letter[m_data[1]] || systems_highest_star_letter[m_data[1]] < m_data[2])
+          systems_highest_star_letter[m_data[1]] = m_data[2]
+        end
+      end
     elsif entry["PlanetClass"]
       bodyType = entry["PlanetClass"]
       scans[bodyType] = scans[bodyType].to_i.next
@@ -79,14 +90,37 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
   end
 end
 
+multistar_system_counts = {}
+# Post-process multi-stars systems
+systems_highest_star_letter.each do |system, letter|
+  name = case letter
+         when "B"
+           "binary systems"
+         when "C"
+           "trinary systems"
+         when "D"
+           "quaternary systems"
+         when "E"
+           "quinary systems"
+         when "F"
+           "senary systems"
+         else
+           "#{letter.ord - "A".ord + 1}-star systems"
+         end
+  multistar_system_counts[name] = multistar_system_counts[name].to_i.next
+end
+
 puts "Prismatic Report"
 puts "----------------"
 puts
 
 out = StringIO.new
-out.puts "+#{travelDist.round(2)} LY traveled"
+out.puts "+#{travel_dist.round(2)} LY traveled"
 scans.sort_by { |k, v| -v }.each do |body, scans|
   out.puts "+#{scans} scans of #{body}"
+end
+multistar_system_counts.sort_by { |k, v| -v }.each do |system, amount|
+  out.puts "+#{amount} #{system}"
 end
 probes.sort_by { |k, v| -v }.each do |probecount, amount|
   out.puts "+#{amount} planets mapped with #{probecount} probes each"
