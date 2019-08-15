@@ -37,10 +37,10 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
     proberange = case entry["EfficiencyTarget"]
                  when 2..5
                    "2 to 5"
-                 when 6..11
-                   "6 to 11"
-                 when 12..18
-                   "12 to 18"
+                 when 6..12
+                   "6 to 12"
+                 when 13..18
+                   "13 to 18"
                  when 19..22
                    "19 to 22"
                  when 23..Float::INFINITY
