@@ -68,7 +68,7 @@ EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do
         bodyType = "Carbon stars"
       elsif ["D", "DA", "DAB", "DAO", "DAZ", "DAV", "DB", "DBZ", "DBV", "DO", "DOV", "DQ", "DC", "DCV", "DX"].include?(bodyType)
         bodyType = "White dwarf stars"
-      elsif ["A_BlueWhiteSuperGiant", "F_WhiteSuperGiant", "M_RedSuperGiant", "M_RedGiant", "K_OrangeGiant"].include?(bodyType)
+      elsif ["A_BlueWhiteSuperGiant", "B_BlueWhiteSuperGiant", "F_WhiteSuperGiant", "M_RedSuperGiant", "M_RedGiant", "K_OrangeGiant"].include?(bodyType)
         bodyType = "Giant stars"
       elsif ["H", "SupermassiveBlackHole"].include?(bodyType)
         bodyType = "Black Holes"
