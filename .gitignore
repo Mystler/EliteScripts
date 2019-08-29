@@ -1,5 +1,6 @@
 html/*.html
 *.exe
 *.json
+*.csv
 Run.sh
 trello.yml
