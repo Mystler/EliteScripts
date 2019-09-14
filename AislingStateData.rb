@@ -33,6 +33,8 @@ end
 # Only collecting strings as items and printing them in kramdown format.
 # Override the private methods when working with objects. Preprocessing order is filter, uniq, sort.
 class AislingDataSet
+  attr_accessor :description
+
   def initialize(title, icon = nil, description = nil)
     @title = title
     @icon = icon
@@ -324,15 +326,6 @@ class CCProfitDataSet < AislingDataSet
 
   def sort
     @items.sort_by! { |x| [-x[:profit]] }
-  end
-
-  def filterText
-    totalIncome = @items.reduce(0) { |sum, x| sum + x[:income] }.round(0)
-    totalUpkeep = @items.reduce(0) { |sum, x| sum + x[:upkeep] }.round(0)
-    totalOH = @items.reduce(0) { |sum, x| sum + x[:overhead] }.round(0)
-    totalProfitNoFort = totalIncome - totalUpkeep - totalOH
-    totalProfitFort = totalIncome - totalOH
-    return "**Totals:** Income #{totalIncome} CC, Upkeep #{totalUpkeep} CC, Overheads #{totalOH} CC<br>Expected Profit (No fortification) #{totalProfitNoFort} CC<br>Expected Profit (Full fortification) #{totalProfitFort} CC"
   end
 end
 

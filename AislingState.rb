@@ -109,7 +109,7 @@ ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems witho
 ctrl_bonus_active = ControlSystemFlipStateDataSet.new("Control systems with active fortification bonus", "fortify")
 ctrl_weak = AislingDataSet.new("Control systems that are UNFAVORABLE", "covert")
 ctrl_weak.setTable(["Control System", "Unfavorable Governments", "Total Governments", "From Cubeo"])
-ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance", "CC values calculated with experimental formulas.")
+ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance")
 ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", "CC values calculated with experimental formulas.")
 ctrl_radius_income = CCIncomeDataSet.new("Control systems by radius income", "finance", "CC values calculated with experimental formulas.")
 fac_fav_push = FavPushFactionDataSet.new(
@@ -135,6 +135,10 @@ simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
 
 # Process AD data
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
+processed_income_systems = []
+total_cc_income = 0
+total_cc_upkeep = 0
+total_cc_overheads = ad_system_cc_overhead * ad_control.size
 ad_control.each do |ctrl_sys|
   # Get exploited systems in profit area
   exploited = ad_exploited.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
@@ -160,7 +164,13 @@ ad_control.each do |ctrl_sys|
     fav_gov_count += 1 if is_strong_gov(sys)
     weak_gov_count += 1 if is_weak_gov(sys)
     poss_fav_gov_count += 1 if sys_fav_facs.any?
-    radius_income += system_cc_income(sys["population"])
+    system_income = system_cc_income(sys["population"])
+    radius_income += system_income
+
+    if !processed_income_systems.include?(sys["name"])
+      processed_income_systems.push sys["name"]
+      total_cc_income += system_income
+    end
 
     best_fav_fac = nil
     sys_fav_facs.each do |fac|
@@ -208,12 +218,14 @@ ad_control.each do |ctrl_sys|
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys["dist_to_cubeo"])
+  total_cc_upkeep += upkeep
   ctrl_upkeep.addItem({control_system: ctrl_sys, upkeep: upkeep})
   radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
   ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: ad_system_cc_overhead})
 end
 
 # Output
+ctrl_radius_profit.description = "CC values calculated with experimental formulas.<br><br>**Totals:** Income #{total_cc_income} CC, Upkeep #{total_cc_upkeep.round(0)} CC, Overheads #{total_cc_overheads.round(0)} CC<br>Expected Profit (No fortification) #{(total_cc_income - total_cc_upkeep - total_cc_overheads).round(0)} CC<br>Expected Profit (Full fortification) #{(total_cc_income - total_cc_overheads).round(0)} CC"
 ctrl_bonus_incomplete.write(advancedOut)
 fac_fav_push.write(advancedOut)
 ctrl_weak.write(advancedOut)
