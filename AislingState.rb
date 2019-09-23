@@ -136,6 +136,7 @@ simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
 # Process AD data
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
 processed_income_systems = []
+overlapped_systems = []
 total_cc_income = 0
 total_cc_upkeep = 0
 total_cc_overheads = ad_system_cc_overhead * ad_control.size
@@ -166,10 +167,13 @@ ad_control.each do |ctrl_sys|
     poss_fav_gov_count += 1 if sys_fav_facs.any?
     system_income = system_cc_income(sys["population"])
     radius_income += system_income
+    sys["sys_cc_income"] = system_income
 
     if !processed_income_systems.include?(sys["name"])
       processed_income_systems.push sys["name"]
       total_cc_income += system_income
+    else
+      overlapped_systems.push sys
     end
 
     best_fav_fac = nil
@@ -222,6 +226,13 @@ ad_control.each do |ctrl_sys|
   ctrl_upkeep.addItem({control_system: ctrl_sys, upkeep: upkeep})
   radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
   ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: ad_system_cc_overhead})
+end
+
+# Post-pass
+ad_control.each do |ctrl_sys|
+  overlapped = overlapped_systems.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
+  ctrl_sys["overlapped_systems_no"] = overlapped.size
+  ctrl_sys["overlapped_systems_cc"] = overlapped.reduce(0) { |sum, x| sum + x["sys_cc_income"] }
 end
 
 # Output

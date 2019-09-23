@@ -316,16 +316,16 @@ end
 # Expected Item properties: control_system, profit, income, upkeep, overhead
 class CCProfitDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} | #{item[:profit]} CC | #{item[:income]} CC \
+    return "#{link_to_system(item[:control_system])} | #{(item[:profit] - item[:control_system]["overlapped_systems_cc"]).round(1)} CC | #{item[:profit]} CC | #{item[:income] - item[:control_system]["overlapped_systems_cc"]} CC | #{item[:income]} CC \
     | #{item[:upkeep]} CC | #{item[:overhead]} CC | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Profit", "Income", "Upkeep", "Overhead", "From Cubeo"]
+    return ["Control System", "Effective Profit", "Full Profit", "Unique Income", "Income", "Upkeep", "Overhead", "From Cubeo"]
   end
 
   def sort
-    @items.sort_by! { |x| [-x[:profit]] }
+    @items.sort_by! { |x| [-(x[:profit] - x[:control_system]["overlapped_systems_cc"])] }
   end
 end
 
@@ -347,15 +347,15 @@ end
 # Expected Item properties: control_system, income
 class CCIncomeDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} | #{item[:income]} CC | #{item[:control_system]["dist_to_cubeo"]} LY"
+    return "#{link_to_system(item[:control_system])} | #{item[:income] - item[:control_system]["overlapped_systems_cc"]} CC | #{item[:income]} CC | #{item[:control_system]["overlapped_systems_no"]} | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Income", "From Cubeo"]
+    return ["Control System", "Unique Income", "Full Income", "Overlapped Systems", "From Cubeo"]
   end
 
   def sort
-    @items.sort_by! { |x| [-x[:income]] }
+    @items.sort_by! { |x| [-(x[:income] - x[:control_system]["overlapped_systems_cc"])] }
   end
 end
 
