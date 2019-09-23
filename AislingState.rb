@@ -172,7 +172,7 @@ ad_control.each do |ctrl_sys|
     if !processed_income_systems.include?(sys["name"])
       processed_income_systems.push sys["name"]
       total_cc_income += system_income
-    else
+    elsif !overlapped_systems.include?(sys)
       overlapped_systems.push sys
     end
 
@@ -229,7 +229,6 @@ ad_control.each do |ctrl_sys|
 end
 
 # Post-pass
-overlapped_systems.uniq!
 ad_control.each do |ctrl_sys|
   overlapped = overlapped_systems.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
   ctrl_sys["overlapped_systems_no"] = overlapped.size
