@@ -23,7 +23,7 @@ class EliteJournal
       Interactive.GetInputOrArg()
       exit
     end
-    Dir.chdir("C:\\Users\\#{ENV["USERNAME"]}\\Saved Games\\Frontier Developments\\Elite Dangerous") do
+    Dir.chdir("#{ENV["USERPROFILE"]}\\Saved Games\\Frontier Developments\\Elite Dangerous") do
       Dir["Journal.*.log"].sort { |a, b| File.mtime(b) <=> File.mtime(a) }.each do |logfile|
         # Sorted descending by last modification, so before start time means files are irrelevant now.
         return if File.mtime(logfile) < tstart
