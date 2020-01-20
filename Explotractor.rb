@@ -19,7 +19,6 @@ puts
 puts
 
 # Sight Tracking Initialization
-travel_dist = 0
 scans = {}
 probes = {}
 
@@ -31,9 +30,7 @@ systems_highest_star_letter = {}
 
 # Read and count data
 EliteJournal.each(["Scan", "SAAScanComplete", "FSDJump"], starttime, endtime) do |entry|
-  if entry["event"] == "FSDJump"
-    travel_dist += entry["JumpDist"]
-  elsif entry["event"] == "SAAScanComplete"
+  if entry["event"] == "SAAScanComplete"
     proberange = case entry["EfficiencyTarget"]
                  when 2..5
                    "2 to 5"
@@ -115,7 +112,6 @@ puts "----------------"
 puts
 
 out = StringIO.new
-out.puts "+#{travel_dist.round(2)} LY traveled"
 scans.sort_by { |k, v| -v }.each do |body, scans|
   out.puts "+#{scans} scans of #{body}"
 end
