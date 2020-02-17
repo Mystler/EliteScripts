@@ -14,7 +14,7 @@ def link_to_system(system)
 end
 
 def link_to_faction(faction)
-  return "#{faction["name"]} <sup>[E](https://eddb.io/faction/#{faction["id"]}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{faction["name"]}){:target=\"_blank\"}</sup>"
+  return "#{faction["name"]} <sup>[M](https://www.edsm.net/en/faction/id/#{faction["id"]}/name/#{faction["name"].gsub(" ", "+")}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{faction["name"]}){:target=\"_blank\"}</sup>"
 end
 
 def updated_at(el)
@@ -184,7 +184,7 @@ end
 # Expected Item properties: faction (in system object), system, control_system
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")}#{"<br>(Pending: " + item[:faction]["pending_states_names"].join(", ") + ")" if item[:faction]["pending_states_names"].any?} | #{link_to_system(item[:system])} | #{item[:faction]["influence"].round(1)}% \
+    return "#{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{(item[:faction]["influence"] * 100).round(1)}% \
     | #{link_to_system(item[:control_system])} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
@@ -221,8 +221,8 @@ end
 # Expected Item properties: faction (in system object), system, control_system
 class WarringCCCDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction]["fac"])} | #{link_to_system(item[:system])} | \
-    #{link_to_system(item[:control_system])} | #{item[:faction]["active_states_names"].join(", ")}#{"<br>(Pending: " + item[:faction]["pending_states_names"].join(", ") + ")" if item[:faction]["pending_states_names"].any?} | \
+    return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | \
+    #{link_to_system(item[:control_system])} | #{item[:faction]["states_output"]} | \
     #{item[:control_war]} | #{item[:ccc_flip_str]} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
@@ -318,7 +318,7 @@ end
 # Expected Item properties: control_system, system, station, faction, priority
 class StationDropDataSet < AislingDataSet
   def itemToString(item)
-    return "#{item[:station]["name"]} | #{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")} | #{link_to_system(item[:system])} | #{link_to_system(item[:control_system])} | #{(item[:station]["distanceToArrival"]).round(1)} Ls | #{item[:system]["dist_to_cubeo"]} LY"
+    return "#{item[:station]["name"]} | #{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{link_to_system(item[:control_system])} | #{(item[:station]["distanceToArrival"]).round(1)} Ls | #{item[:system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
@@ -327,5 +327,20 @@ class StationDropDataSet < AislingDataSet
 
   def sort
     @items.sort_by! { |x| [x[:priority], -x[:faction]["influence"]] }
+  end
+end
+
+# Expected Item properties: control_system, total_ccc_inf
+class TopCCCInfMovements < AislingDataSet
+  def itemToString(item)
+    return "#{link_to_system(item[:control_system])} | #{(item[:total_ccc_inf][:now] * 100).round(1)} | #{(item[:total_ccc_inf][:week] * 100).round(1)} | #{(item[:total_ccc_inf][:change_week] * 100).round(1)} | #{(item[:total_ccc_inf][:month] * 100).round(1)} | #{(item[:total_ccc_inf][:change_month] * 100).round(1)}"
+  end
+
+  def tableHeader
+    return ["Control System", "Total CCC Inf", "Last Week", "Change", "Last Month", "Change"]
+  end
+
+  def sort
+    @items.sort_by! { |x| [-x[:total_ccc_inf][:change_week].abs] }
   end
 end
