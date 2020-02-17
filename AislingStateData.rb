@@ -137,17 +137,17 @@ class AislingDataSet
   end
 end
 
-# Expected Item properties: control_system, active_ccc, active_ccc_r, max_ccc, max_ccc_r, total_govs
+# Expected Item properties: control_system
 class ControlSystemFlipStateDataSet < AislingDataSet
   def itemToString(item)
-    active_percent = (100.0 * item[:active_ccc_r]).round(1)
-    max_percent = (100.0 * item[:max_ccc_r]).round(1)
-    return "#{link_to_system(item[:control_system])} | #{item[:active_ccc]} (#{active_percent}%) | #{item[:max_ccc]} (#{max_percent}%) \
-    | #{item[:total_govs]} | #{item[:control_system]["dist_to_cubeo"]} LY"
+    active_percent = (100.0 * item[:control_system]["flip_data"][:active_ccc_r]).round(1)
+    max_percent = (100.0 * item[:control_system]["flip_data"][:max_ccc_r]).round(1)
+    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:active_ccc]} (#{active_percent}%) | #{item[:control_system]["flip_data"][:needed_ccc]} (#{item[:control_system]["flip_data"][:buffer_ccc]}) | #{item[:control_system]["flip_data"][:max_ccc]} (#{max_percent}%) \
+    | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "CCC Governments", "Possible CCC Governments", "Total Governments", "From Cubeo"]
+    return ["Control System", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "From Cubeo"]
   end
 
   def filter
@@ -159,32 +159,32 @@ class ControlSystemFlipStateDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [-x[:active_ccc_r]] }
+    @items.sort_by! { |x| [x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r]] }
   end
 end
 
 class SimpleControlSystemFlipStateDataSet < AislingDataSet
   def itemToString(item)
-    active_percent = (100.0 * item[:active_ccc_r]).round(1)
-    max_percent = (100.0 * item[:max_ccc_r]).round(1)
+    active_percent = (100.0 * item[:control_system]["flip_data"][:active_ccc_r]).round(1)
+    max_percent = (100.0 * item[:control_system]["flip_data"][:max_ccc_r]).round(1)
     priority = (item[:priority] == 1 ? "Top" : (item[:priority] == 2 ? "High" : "Low"))
-    return "#{link_to_system(item[:control_system])} | #{priority} | #{item[:active_ccc]} (#{active_percent}%) | #{item[:max_ccc]} (#{max_percent}%) \
-    | #{item[:total_govs]} | #{item[:control_system]["dist_to_cubeo"]} LY"
+    return "#{link_to_system(item[:control_system])} | #{priority} | #{item[:control_system]["flip_data"][:active_ccc]} (#{active_percent}%) | #{item[:control_system]["flip_data"][:needed_ccc]} (#{item[:control_system]["flip_data"][:buffer_ccc]}) | #{item[:control_system]["flip_data"][:max_ccc]} (#{max_percent}%) \
+    | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Priority", "CCC Governments", "Possible CCC Governments", "Total Governments", "From Cubeo"]
+    return ["Control System", "Priority", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "From Cubeo"]
   end
 
   def sort
-    @items.sort_by! { |x| [x[:priority], -x[:active_ccc_r]] }
+    @items.sort_by! { |x| [x[:priority], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r]] }
   end
 end
 
 # Expected Item properties: faction (in system object), system, control_system
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")} | #{link_to_system(item[:system])} | #{item[:faction]["influence"].round(1)}% \
+    return "#{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")}#{"<br>(Pending: " + item[:faction]["pending_states_names"].join(", ") + ")" if item[:faction]["pending_states_names"].any?} | #{link_to_system(item[:system])} | #{item[:faction]["influence"].round(1)}% \
     | #{link_to_system(item[:control_system])} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
@@ -201,34 +201,33 @@ class FavPushFactionDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:control_system]["dist_to_cubeo"], -x[:faction]["influence"]] }
+    @items.sort_by! { |x| [x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r], x[:control_system]["dist_to_cubeo"], -x[:faction]["influence"]] }
   end
 end
 
-class SimpleFavPushFactionDataSet < AislingDataSet
-  def itemToString(item)
-    return "#{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")} | #{link_to_system(item[:system])} | #{item[:faction]["influence"].round(1)}% \
-    | #{link_to_system(item[:control_system])} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
+class SimpleFavPushFactionDataSet < FavPushFactionDataSet
+  def filterText
+    return nil
   end
 
-  def tableHeader
-    return ["Faction", "States", "System", "Influence", "Sphere", "From Cubeo", "Updated"]
+  def filter
   end
 
   def sort
-    @items.sort_by! { |x| [x[:priority], x[:control_system]["dist_to_cubeo"], -x[:faction]["influence"]] }
+    @items.sort_by! { |x| [x[:priority], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r], x[:control_system]["dist_to_cubeo"], -x[:faction]["influence"]] }
   end
 end
 
 # Expected Item properties: faction (in system object), system, control_system
 class WarringCCCDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")} | #{link_to_system(item[:system])} | \
-    #{link_to_system(item[:control_system])} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
+    return "#{link_to_faction(item[:faction]["fac"])} | #{link_to_system(item[:system])} | \
+    #{link_to_system(item[:control_system])} | #{item[:faction]["active_states_names"].join(", ")}#{"<br>(Pending: " + item[:faction]["pending_states_names"].join(", ") + ")" if item[:faction]["pending_states_names"].any?} | \
+    #{item[:control_war]} | #{item[:ccc_flip_str]} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    return ["Faction", "States", "System", "Sphere", "From Cubeo", "Updated"]
+    return ["Faction", "System", "Sphere", "States", "Control War", "Flip State", "From Cubeo", "Updated"]
   end
 
   def filter
@@ -240,76 +239,33 @@ class WarringCCCDataSet < AislingDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:control_system]["dist_to_cubeo"], x[:system]["dist_to_cubeo"]] }
+    @items.each do |x|
+      if x[:control_war] == "Attacking"
+        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] == -1 ? "Flip" : x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc] + 1} banking" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
+        x[:ccc_flip_sort] = 0
+      elsif x[:control_war] == "Defending"
+        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] == 0 ? "Unflip" : x[:control_system]["flip_data"][:buffer_ccc] > 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
+        x[:ccc_flip_sort] = 0
+      else
+        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
+        x[:ccc_flip_sort] = 1
+      end
+    end
+    @items.sort_by! { |x| [x[:ccc_flip_sort], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_war].ord, x[:system]["dist_to_cubeo"]] }
   end
 end
 
-class SimpleWarringCCCDataSet < AislingDataSet
-  def itemToString(item)
-    return "#{link_to_faction(item[:faction]["fac"])} | #{item[:faction]["active_states_names"].join(", ")} | #{link_to_system(item[:system])} | \
-    #{link_to_system(item[:control_system])} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
+class SimpleWarringCCCDataSet < WarringCCCDataSet
+  def filterText
+    return nil
   end
 
-  def tableHeader
-    return ["Faction", "States", "System", "Sphere", "From Cubeo", "Updated"]
-  end
-
-  def sort
-    @items.sort_by! { |x| [x[:priority], x[:control_system]["dist_to_cubeo"], x[:system]["dist_to_cubeo"]] }
-  end
-end
-
-# Add all entries found, this will automatically be reduced to display per faction data
-# Expected Item properties: faction, system, control_system
-class BoomingCCCDataSet < AislingDataSet
-  def itemToString(item)
-    out = "#{link_to_faction(item[:faction])} | "
-    item[:systems].each_with_index do |sys, i|
-      out += "<br>" if i > 0
-      out += link_to_system(sys)
-    end
-    out += " | "
-    item[:spheres].each_with_index do |sys, i|
-      out += "<br>" if i > 0
-      out += link_to_system(sys)
-    end
-    out += " | #{item[:avg_from_cubeo]} LY | #{updated_at(item[:faction])}"
-    return out
-  end
-
-  def tableHeader
-    return ["Faction", "Systems", "Spheres", "Avg From Cubeo", "Updated"]
-  end
-
-  def uniq
-    factions = []
-    factionSystems = {}
-    factionSpheres = {}
-    @items.each do |item|
-      factions.push item[:faction]
-      if factionSystems[item[:faction]]
-        factionSystems[item[:faction]].push item[:system]
-      else
-        factionSystems[item[:faction]] = [item[:system]]
-      end
-      if factionSpheres[item[:faction]]
-        factionSpheres[item[:faction]].push item[:control_system]
-      else
-        factionSpheres[item[:faction]] = [item[:control_system]]
-      end
-    end
-    @items = []
-    factions.uniq!
-    factions.each do |fac|
-      factionSystems[fac].uniq!
-      factionSpheres[fac].uniq!
-      avg_from_cubeo = (factionSystems[fac].collect { |x| x["dist_to_cubeo"] }.reduce(:+) / factionSystems[fac].size.to_f).round(1)
-      @items.push({faction: fac, systems: factionSystems[fac], spheres: factionSpheres[fac], avg_from_cubeo: avg_from_cubeo})
-    end
+  def filter
   end
 
   def sort
-    @items.sort_by! { |x| x[:avg_from_cubeo] }
+    super
+    @items.sort_by! { |x| [x[:priority], x[:ccc_flip_sort], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_war].ord, x[:system]["dist_to_cubeo"]] }
   end
 end
 

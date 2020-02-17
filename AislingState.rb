@@ -117,7 +117,6 @@ fac_fav_push = FavPushFactionDataSet.new(
   "Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable."
 )
 fac_fav_war = WarringCCCDataSet.new("Warring favorable factions", "combat")
-fac_fav_boom = BoomingCCCDataSet.new("Booming favorable factions", "finance")
 
 simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
   "Control systems to focus on", "fortify",
@@ -178,27 +177,29 @@ ad_control.each do |ctrl_sys|
 
     best_fav_fac = nil
     sys_fav_facs.each do |fac|
-      if !is_strong_gov(sys) && fac["minor_faction_id"] != sys["government_id"]
+      if !is_strong_gov(sys)
         best_fav_fac = fac if !best_fav_fac || fac["influence"] > best_fav_fac["influence"]
       end
-      fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys}) if is_conflicting(fac["active_states_names"])
-      fac_fav_boom.addItem({faction: fac["fac"], system: sys, control_system: ctrl_sys}) if fac["active_states_names"].include?("Boom")
+      if is_conflicting(fac["active_states_names"] + fac["pending_states_names"])
+        opponent = sys["minor_faction_presences"].select { |x| x["minor_faction_id"] != fac["minor_faction_id"] && x["influence"] == fac["influence"] }.first
+        control_war = fac["minor_faction_id"] == sys["controlling_minor_faction_id"] ? "Defending" : opponent["minor_faction_id"] == sys["controlling_minor_faction_id"] ? "Attacking" : "No"
+        fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war})
+
+        if priority <= 3
+          simple_fac_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war, priority: priority})
+        end
+      end
     end
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
       simple_fac_push.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
     end
 
-    if priority <= 3 and best_fav_fac
-      if is_conflicting(best_fav_fac["active_states_names"])
-        simple_fac_war.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority})
-      end
-      if !is_conflicting(best_fav_fac["active_states_names"]) && !is_conflicting(best_fav_fac["pending_states_names"])
-        edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
-        ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["name"] == best_fav_fac["fac"]["name"] }
-        ccc_stations.each do |station|
-          simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac, priority: priority})
-        end
+    if priority <= 3 && best_fav_fac && !is_conflicting(best_fav_fac["active_states_names"] + best_fav_fac["pending_states_names"])
+      edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
+      ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["name"] == best_fav_fac["fac"]["name"] }
+      ccc_stations.each do |station|
+        simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac, priority: priority})
       end
     end
   end
@@ -207,8 +208,10 @@ ad_control.each do |ctrl_sys|
   fav_gov = fav_gov_count.to_f / gov_count.to_f
   poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f
   weak_gov = weak_gov_count.to_f / gov_count.to_f
-  item = {control_system: ctrl_sys, active_ccc: fav_gov_count, active_ccc_r: fav_gov,
-          max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, total_govs: gov_count, priority: priority}
+  needed_ccc = (gov_count * 0.5).ceil
+  buffer_ccc = fav_gov_count - needed_ccc
+  ctrl_sys["flip_data"] = {active_ccc: fav_gov_count, active_ccc_r: fav_gov, max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, needed_ccc: needed_ccc, buffer_ccc: buffer_ccc, total_govs: gov_count}
+  item = {control_system: ctrl_sys, priority: priority}
   if fav_gov >= 0.5
     ctrl_bonus_active.addItem item
   elsif poss_fav_gov >= 0.5
@@ -237,11 +240,11 @@ end
 
 # Output
 ctrl_radius_profit.description = "CC values calculated with experimental formulas.<br><br>**Totals:** Income #{total_cc_income} CC, Upkeep #{total_cc_upkeep.round(0)} CC, Overheads #{total_cc_overheads.round(0)} CC<br>Expected Profit (No fortification) #{(total_cc_income - total_cc_upkeep - total_cc_overheads).round(0)} CC<br>Expected Profit (Full fortification) #{(total_cc_income - total_cc_overheads).round(0)} CC"
+
+fac_fav_war.write(advancedOut)
+ctrl_weak.write(advancedOut)
 ctrl_bonus_incomplete.write(advancedOut)
 fac_fav_push.write(advancedOut)
-ctrl_weak.write(advancedOut)
-fac_fav_war.write(advancedOut)
-fac_fav_boom.write(advancedOut)
 ctrl_bonus_active.write(advancedOut)
 ctrl_bonus_impossible.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
@@ -249,9 +252,9 @@ ctrl_upkeep.write(advancedOut)
 ctrl_radius_income.write(advancedOut)
 
 simple_spherestate.write(simpleOut)
-simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
-simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
 simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
+simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
+simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
 
 # Write to files
 File.open("html/advanced.html", "w") do |f|
