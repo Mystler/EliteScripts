@@ -11,32 +11,6 @@ require_relative "AislingStateData"
 advancedOut = StringIO.new
 simpleOut = StringIO.new
 
-# Write headers
-[advancedOut, simpleOut].each do |out|
-  out.puts "# Aisling Duval Report"
-  out.puts "{:.no_toc .text-center}"
-  out.puts '<p class="text-center"><img alt="Aisling Duval" src="aisling-duval.svg" width="200" height="200"></p>'
-  out.puts "<p class=\"text-center\">Generated: <u><em class=\"timeago\" datetime=\"#{Time.now}\" data-toggle=\"tooltip\" title=\"#{Time.now}\"></em></u></p>"
-  out.puts '<p class="text-center" markdown="1">'
-  if out == simpleOut
-    out.puts 'This is the simple report, based on priority targets and intended to help focus our BGS efforts.\\\\'
-    out.puts "For an unfiltered, advanced report [click here](advanced.html)."
-  else
-    out.puts 'This is the advanced report without filters and priorities, intended for full information and overview.\\\\'
-    out.puts "For the simple report for players [click here](index.html)."
-  end
-  out.puts "</p>"
-  out.puts
-  out.puts '<div class="card bg-darken">'
-  out.puts '  <h3 class="card-header">Table of Contents</h3>'
-  out.puts '  <div class="card-body" markdown="1">'
-  out.puts "* TOC Entry"
-  out.puts "{:toc}"
-  out.puts "  </div>"
-  out.puts "</div>"
-  out.puts
-end
-
 # Total data
 systems = JSON.parse(File.read("data/systems_populated.json"))
 
@@ -126,9 +100,6 @@ simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
 puts "Start processing..."
 puts
 
-# Debug switch
-cache_only = false
-
 ad_system_cc_overhead = system_cc_overhead(ad_control.size + ad_exploited.size).round(1)
 processed_income_systems = []
 overlapped_systems = []
@@ -157,7 +128,7 @@ ad_control.each do |ctrl_sys|
   local_fac_fav_push = []
   exploited.each do |sys|
     puts "Processing system #{sys["name"]} (#{sys["edsm_id"]})..."
-    sys_fac_data = cache_only ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
+    sys_fac_data = AislingStateConfig.cacheOnly? ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
 
     # EDSM Cache handling
     cache_file = "data/edsm_cache/#{sys["edsm_id"]}.json"
@@ -262,8 +233,6 @@ ad_control.each do |ctrl_sys|
   total_ccc_inf[:change_week] = total_ccc_inf[:now] - total_ccc_inf[:week]
   total_ccc_inf[:change_month] = total_ccc_inf[:now] - total_ccc_inf[:month]
 
-  puts total_ccc_inf.inspect
-
   ctrl_trends.addItem({control_system: ctrl_sys, total_ccc_inf: total_ccc_inf})
 
   puts
@@ -284,6 +253,32 @@ ctrl_radius_profit.description = "CC values calculated with experimental formula
 
 puts "Generating reports..."
 puts
+
+# Write headers
+[advancedOut, simpleOut].each do |out|
+  out.puts "# Aisling Duval Report"
+  out.puts "{:.no_toc .text-center}"
+  out.puts '<p class="text-center"><img alt="Aisling Duval" src="aisling-duval.svg" width="200" height="200"></p>'
+  out.puts "<p class=\"text-center\">Generated: <u><em class=\"timeago\" datetime=\"#{Time.now}\" data-toggle=\"tooltip\" title=\"#{Time.now}\"></em></u></p>"
+  out.puts '<p class="text-center" markdown="1">'
+  if out == simpleOut
+    out.puts 'This is the simple report, based on priority targets and intended to help focus our BGS efforts.\\\\'
+    out.puts "For an unfiltered, advanced report [click here](advanced.html)."
+  else
+    out.puts 'This is the advanced report without filters and priorities, intended for full information and overview.\\\\'
+    out.puts "For the simple report for players [click here](index.html)."
+  end
+  out.puts "</p>"
+  out.puts
+  out.puts '<div class="card bg-darken">'
+  out.puts '  <h3 class="card-header">Table of Contents</h3>'
+  out.puts '  <div class="card-body" markdown="1">'
+  out.puts "* TOC Entry"
+  out.puts "{:toc}"
+  out.puts "  </div>"
+  out.puts "</div>"
+  out.puts
+end
 
 fac_fav_war.write(advancedOut)
 ctrl_weak.write(advancedOut)
