@@ -176,7 +176,13 @@ ad_control.each do |ctrl_sys|
       end
       if is_conflicting(fac["active_states_names"] + fac["pending_states_names"])
         opponent = sys_fac_data["factions"].select { |x| x["id"] != fac["id"] && x["influence"] == fac["influence"] }.first
-        control_war = fac["id"] == sys_fac_data["controllingFaction"]["id"] ? "Defending" : opponent["id"] == sys_fac_data["controllingFaction"]["id"] ? "Attacking" : "No"
+        control_war = if fac["id"] == sys_fac_data["controllingFaction"]["id"]
+                        "Defending"
+                      elsif !opponent
+                        "???"
+                      elsif opponent["id"] == sys_fac_data["controllingFaction"]["id"]
+                        "Attacking"
+                      else "No"                       end
         fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war})
 
         if priority <= 3
