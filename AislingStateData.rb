@@ -247,7 +247,7 @@ class WarringCCCDataSet < AislingDataSet
         x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] == 0 ? "Unflip" : x[:control_system]["flip_data"][:buffer_ccc] > 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
         x[:ccc_flip_sort] = 0
       elsif x[:control_war] == "???"
-        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] > 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
+        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
         x[:ccc_flip_sort] = 0
       else
         x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
