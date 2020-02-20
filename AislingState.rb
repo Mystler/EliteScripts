@@ -81,6 +81,7 @@ fac_fav_push = FavPushFactionDataSet.new(
 )
 fac_fav_war = WarringCCCDataSet.new("Warring favorable factions", "combat")
 ctrl_trends = TopCCCInfMovements.new("Favourable factions influence movements", "eye", "Lists control spheres by changes in total percent points of influence in CCCs.")
+retreats = RetreatsDataSet.new("Noteworthy retreats", "combat")
 
 simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
   "Control systems to focus on", "fortify",
@@ -144,12 +145,14 @@ ad_control.each do |ctrl_sys|
       end
     end
 
-    sys_fav_facs = sys_fac_data["factions"].select { |x| is_strong_gov(x) && x["influence"] > 0.0 }
-    sys_weak_facs = sys_fac_data["factions"].select { |x| is_weak_gov(x) }
+    sys_facs = sys_fac_data["factions"].select { |x| x["influence"] > 0.0 }
+    sys_fav_facs = sys_facs.select { |x| is_strong_gov(x) }
+    sys_weak_facs = sys_facs.select { |x| is_weak_gov(x) }
 
     # Update last update timestamp for the entire system
     sys["updated_at"] = sys_fac_data["factions"].first["lastUpdate"]
 
+    # Flip and CC state
     fav_gov_count += 1 if is_strong_gov(sys_fac_data["controllingFaction"])
     weak_gov_count += 1 if is_weak_gov(sys_fac_data["controllingFaction"])
     poss_fav_gov_count += 1 if sys_fav_facs.any?
@@ -164,6 +167,7 @@ ad_control.each do |ctrl_sys|
       overlapped_systems.push sys
     end
 
+    # Investigate favourable faction
     best_fav_fac = nil
     sys_fav_facs.each do |fac|
       # Inject state strings
@@ -175,7 +179,7 @@ ad_control.each do |ctrl_sys|
         best_fav_fac = fac if !best_fav_fac || fac["influence"] > best_fav_fac["influence"]
       end
       if is_conflicting(fac["active_states_names"] + fac["pending_states_names"])
-        opponent = sys_fac_data["factions"].select { |x| x["id"] != fac["id"] && x["influence"] == fac["influence"] }.first
+        opponent = sys_facs.select { |x| x["id"] != fac["id"] && x["influence"] == fac["influence"] }.first
         control_war = if fac["id"] == sys_fac_data["controllingFaction"]["id"]
                         "Defending"
                       elsif !opponent
@@ -183,10 +187,12 @@ ad_control.each do |ctrl_sys|
                       elsif opponent["id"] == sys_fac_data["controllingFaction"]["id"]
                         "Attacking"
                       else "No"                       end
-        fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war})
+        if !opponent || !is_strong_gov(opponent)
+          fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war})
 
-        if priority <= 3
-          simple_fac_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war, priority: priority})
+          if priority <= 3
+            simple_fac_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war, priority: priority})
+          end
         end
       end
 
@@ -207,6 +213,22 @@ ad_control.each do |ctrl_sys|
       ccc_stations.each do |station|
         simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac, priority: priority})
       end
+    end
+
+    # Retreat investigation
+    sys_facs.select { |x| (x["activeStates"] + x["pendingStates"]).any? { |y| y["state"] == "Retreat" } }.each do |retreat_fac|
+      retreat_prio = 0
+      if is_strong_gov(retreat_fac) && sys_fav_facs.size == 1
+        retreat_info = "Last CCC in system"
+        retreat_prio = 1
+      elsif sys_facs.size >= 7
+        retreat_info = "#{sys_facs.size}th faction#{" (CCC)" if is_strong_gov(retreat_fac)}"
+        retreat_prio = 2
+      elsif is_strong_gov(retreat_fac)
+        retreat_info = "CCC"
+        retreat_prio = 3
+      end
+      retreats.addItem({control_system: ctrl_sys, system: sys, faction: retreat_fac, retreat_info: retreat_info, retreat_prio: retreat_prio}) if retreat_prio > 0
     end
   end
 
@@ -287,6 +309,7 @@ puts
 end
 
 fac_fav_war.write(advancedOut)
+retreats.write(advancedOut)
 ctrl_weak.write(advancedOut)
 ctrl_bonus_incomplete.write(advancedOut)
 fac_fav_push.write(advancedOut)

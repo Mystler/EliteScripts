@@ -347,3 +347,28 @@ class TopCCCInfMovements < AislingDataSet
     @items.sort_by! { |x| [-x[:total_ccc_inf][:change_week].abs] }
   end
 end
+
+# Expected Item properties: control_system, system, faction, retreat_info, retreat_prio
+class RetreatsDataSet < AislingDataSet
+  def itemToString(item)
+    return "#{link_to_faction(item[:faction])} | #{item[:faction]["allegiance"]} #{item[:faction]["government"]} | #{link_to_system(item[:system])} | \
+    #{link_to_system(item[:control_system])} | #{item[:retreat_info]} | \
+    #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
+  end
+
+  def tableHeader
+    return ["Faction", "Type", "System", "Sphere", "Retreat Class", "From Cubeo", "Updated"]
+  end
+
+  def filter
+    @items.reject! { |x| AislingStateConfig.blacklistCombined.include?(x[:control_system]["name"]) }
+  end
+
+  def filterText
+    return AislingStateConfig.blacklistText
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:retreat_prio], x[:control_system]["flip_data"][:buffer_ccc].abs, x[:system]["dist_to_cubeo"]] }
+  end
+end
