@@ -27,3 +27,7 @@ u {
 .age-green { color: #0F0; }
 .age-yellow { color: #FF0; }
 .age-red { color: #F00; }
+
+.table tbody tr:hover {
+    background-color: rgba(255,255,255,0.1);
+}
