@@ -109,6 +109,7 @@ total_cc_upkeep = 0
 total_cc_overheads = ad_system_cc_overhead * ad_control.size
 ad_control.each do |ctrl_sys|
   puts "Processing control sphere #{ctrl_sys["name"]}..."
+
   # Get exploited systems in profit area
   exploited = ad_exploited.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
 
@@ -123,7 +124,20 @@ ad_control.each do |ctrl_sys|
   radius_income = 0
   total_ccc_inf = {now: 0, week: 0, month: 0}
 
-  priority = 9999 unless priority = AislingStateConfig.prioritySpheres[ctrl_sys["name"]]
+  # Get or inject Trello priorities
+  priority = AislingStateConfig.prioritySpheres[ctrl_sys["name"]] || 9999
+  ctrl_sys["fortPrio"] = AislingStateConfig.fortPriorities[ctrl_sys["name"]] || 9999
+  ctrl_sys["fortPrioText"] = case ctrl_sys["fortPrio"]
+                             when 1
+                               "Top"
+                             when 2
+                               "Higher"
+                             when 3
+                               "High"
+                             else
+                               "None"
+                             end
+  ctrl_sys["fortPrioText"] = "Do Not Fort" if AislingStateConfig.blacklistFortify.include?(ctrl_sys["name"])
 
   # Process per system
   local_fac_fav_push = []

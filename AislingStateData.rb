@@ -143,11 +143,11 @@ class ControlSystemFlipStateDataSet < AislingDataSet
     active_percent = (100.0 * item[:control_system]["flip_data"][:active_ccc_r]).round(1)
     max_percent = (100.0 * item[:control_system]["flip_data"][:max_ccc_r]).round(1)
     return "#{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:active_ccc]} (#{active_percent}%) | #{item[:control_system]["flip_data"][:needed_ccc]} (#{item[:control_system]["flip_data"][:buffer_ccc]}) | #{item[:control_system]["flip_data"][:max_ccc]} (#{max_percent}%) \
-    | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["dist_to_cubeo"]} LY"
+    | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["fortPrioText"]} | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "From Cubeo"]
+    return ["Control System", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "Fort Prio", "From Cubeo"]
   end
 
   def filter
@@ -169,11 +169,11 @@ class SimpleControlSystemFlipStateDataSet < AislingDataSet
     max_percent = (100.0 * item[:control_system]["flip_data"][:max_ccc_r]).round(1)
     priority = (item[:priority] == 1 ? "Top" : (item[:priority] == 2 ? "High" : "Low"))
     return "#{link_to_system(item[:control_system])} | #{priority} | #{item[:control_system]["flip_data"][:active_ccc]} (#{active_percent}%) | #{item[:control_system]["flip_data"][:needed_ccc]} (#{item[:control_system]["flip_data"][:buffer_ccc]}) | #{item[:control_system]["flip_data"][:max_ccc]} (#{max_percent}%) \
-    | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["dist_to_cubeo"]} LY"
+    | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["fortPrioText"]} | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Priority", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "From Cubeo"]
+    return ["Control System", "Priority", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "Fort Prio", "From Cubeo"]
   end
 
   def sort
@@ -185,11 +185,11 @@ end
 class FavPushFactionDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{(item[:faction]["influence"] * 100).round(1)}% \
-    | #{link_to_system(item[:control_system])} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
+    | #{link_to_system(item[:control_system])} | #{item[:control_system]["fortPrioText"]} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    return ["Faction", "States", "System", "Influence", "Sphere", "From Cubeo", "Updated"]
+    return ["Faction", "States", "System", "Influence", "Sphere", "Fort Prio", "From Cubeo", "Updated"]
   end
 
   def filter
@@ -223,11 +223,11 @@ class WarringCCCDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | \
     #{link_to_system(item[:control_system])} | #{item[:faction]["states_output"]} | \
-    #{item[:control_war]} | #{item[:ccc_flip_str]} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
+    #{item[:control_war]} | #{item[:ccc_flip_str]} | #{item[:control_system]["fortPrioText"]} | #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    return ["Faction", "System", "Sphere", "States", "Control War", "Flip State", "From Cubeo", "Updated"]
+    return ["Faction", "System", "Sphere", "States", "Control War", "Flip State", "Fort Prio", "From Cubeo", "Updated"]
   end
 
   def filter
@@ -275,12 +275,12 @@ end
 # Expected Item properties: control_system, profit, income, upkeep, overhead
 class CCProfitDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} | #{(item[:profit] - item[:control_system]["overlapped_systems_cc"]).round(1)} CC | #{item[:profit]} CC | #{item[:income] - item[:control_system]["overlapped_systems_cc"]} CC | #{item[:income]} CC \
+    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["fortPrioText"]} | #{(item[:profit] - item[:control_system]["overlapped_systems_cc"]).round(1)} CC | #{item[:profit]} CC | #{item[:income] - item[:control_system]["overlapped_systems_cc"]} CC | #{item[:income]} CC \
     | #{item[:upkeep]} CC | #{item[:overhead]} CC | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Effective Profit", "Full Profit", "Unique Income", "Income", "Upkeep", "Overhead", "From Cubeo"]
+    return ["Control System", "Fort Prio", "Effective Profit", "Full Profit", "Unique Income", "Income", "Upkeep", "Overhead", "From Cubeo"]
   end
 
   def sort
@@ -291,11 +291,11 @@ end
 # Expected Item properties: control_system, upkeep
 class CCUpkeepDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} | #{item[:upkeep]} CC | #{item[:control_system]["dist_to_cubeo"]} LY"
+    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["fortPrioText"]} | #{item[:upkeep]} CC | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Upkeep", "From Cubeo"]
+    return ["Control System", "Fort Prio", "Upkeep", "From Cubeo"]
   end
 
   def sort
@@ -306,11 +306,11 @@ end
 # Expected Item properties: control_system, income
 class CCIncomeDataSet < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} | #{item[:income] - item[:control_system]["overlapped_systems_cc"]} CC | #{item[:income]} CC | #{item[:control_system]["overlapped_systems_no"]} | #{item[:control_system]["dist_to_cubeo"]} LY"
+    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["fortPrioText"]} | #{item[:income] - item[:control_system]["overlapped_systems_cc"]} CC | #{item[:income]} CC | #{item[:control_system]["overlapped_systems_no"]} | #{item[:control_system]["dist_to_cubeo"]} LY"
   end
 
   def tableHeader
-    return ["Control System", "Unique Income", "Full Income", "Overlapped Systems", "From Cubeo"]
+    return ["Control System", "Fort Prio", "Unique Income", "Full Income", "Overlapped Systems", "From Cubeo"]
   end
 
   def sort
@@ -336,11 +336,11 @@ end
 # Expected Item properties: control_system, total_ccc_inf
 class TopCCCInfMovements < AislingDataSet
   def itemToString(item)
-    return "#{link_to_system(item[:control_system])} | #{(item[:total_ccc_inf][:now] * 100).round(1)} | #{(item[:total_ccc_inf][:week] * 100).round(1)} | #{(item[:total_ccc_inf][:change_week] * 100).round(1)} | #{(item[:total_ccc_inf][:month] * 100).round(1)} | #{(item[:total_ccc_inf][:change_month] * 100).round(1)}"
+    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["fortPrioText"]} | #{(item[:total_ccc_inf][:now] * 100).round(1)} | #{(item[:total_ccc_inf][:week] * 100).round(1)} | #{(item[:total_ccc_inf][:change_week] * 100).round(1)} | #{(item[:total_ccc_inf][:month] * 100).round(1)} | #{(item[:total_ccc_inf][:change_month] * 100).round(1)}"
   end
 
   def tableHeader
-    return ["Control System", "Total CCC Inf", "Last Week", "Change", "Last Month", "Change"]
+    return ["Control System", "Fort Prio", "Total CCC Inf", "Last Week", "Change", "Last Month", "Change"]
   end
 
   def sort
@@ -352,12 +352,12 @@ end
 class RetreatsDataSet < AislingDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{item[:faction]["allegiance"]} #{item[:faction]["government"]} | #{link_to_system(item[:system])} | \
-    #{link_to_system(item[:control_system])} | #{item[:retreat_info]} | \
+    #{link_to_system(item[:control_system])} | #{item[:retreat_info]} | #{item[:control_system]["fortPrioText"]} | \
     #{item[:system]["dist_to_cubeo"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    return ["Faction", "Type", "System", "Sphere", "Retreat Class", "From Cubeo", "Updated"]
+    return ["Faction", "Type", "System", "Sphere", "Retreat Class", "Fort Prio", "From Cubeo", "Updated"]
   end
 
   def filter
