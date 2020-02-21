@@ -2,8 +2,19 @@ GEM
   remote: https://rubygems.org/
   specs:
     clipboard (1.3.3)
+    ffi (1.12.2-x64-mingw32)
     json (2.1.0)
     kramdown (1.17.0)
+    listen (3.2.1)
+      rb-fsevent (~> 0.10, >= 0.10.3)
+      rb-inotify (~> 0.9, >= 0.9.10)
+    rb-fsevent (0.10.3)
+    rb-inotify (0.10.1)
+      ffi (~> 1.0)
+    wdm (0.1.1)
+    win32-sapi (0.2.0)
+    win32-sound (0.6.2)
+      ffi
 
 PLATFORMS
   x64-mingw32
@@ -12,6 +23,10 @@ DEPENDENCIES
   clipboard
   json
   kramdown
+  listen
+  wdm (>= 0.1.0)
+  win32-sapi
+  win32-sound
 
 BUNDLED WITH
    1.16.5

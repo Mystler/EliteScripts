@@ -3,6 +3,10 @@ require "time"
 require_relative "Interactive"
 
 class EliteJournal
+  def self.path
+    return "#{ENV["USERPROFILE"]}\\Saved Games\\Frontier Developments\\Elite Dangerous"
+  end
+
   # Events being nil will load all events, supply an array please!!!
   # Start and end time will be parsed from strings.
   def self.each(events, starttime, endtime = nil)
@@ -23,7 +27,7 @@ class EliteJournal
       Interactive.GetInputOrArg()
       exit
     end
-    Dir.chdir("#{ENV["USERPROFILE"]}\\Saved Games\\Frontier Developments\\Elite Dangerous") do
+    Dir.chdir(path) do
       Dir["Journal.*.log"].sort { |a, b| File.mtime(b) <=> File.mtime(a) }.each do |logfile|
         # Sorted descending by last modification, so before start time means files are irrelevant now.
         return if File.mtime(logfile) < tstart

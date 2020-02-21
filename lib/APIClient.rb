@@ -27,4 +27,17 @@ class APIClient
     return nil if response.code != "200"
     return JSON.parse(response.body)
   end
+
+  def self.post_json(url, data, use_https = true)
+    uri = URI.parse(url)
+    request = Net::HTTP.new(uri.host, uri.port)
+    if use_https
+      request.use_ssl = true
+      request.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    end
+    response = request.post(uri.request_uri, JSON.generate(data), {"Content-Type" => "application/json"})
+    puts response.inspect
+    return nil if response.code != "200"
+    return JSON.parse(response.body)
+  end
 end

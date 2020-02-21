@@ -1,3 +1,5 @@
+require "rubygems"
+require "bundler/setup"
 require "clipboard"
 require_relative "lib/Interactive"
 require_relative "lib/EliteJournal"
