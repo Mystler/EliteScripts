@@ -28,9 +28,9 @@ class AislingStateConfig
     trelloCards = TrelloClient.getAllADCards()
     trelloCards.each do |card|
       if card["idList"] == "56426feacf6120c172861893" #Fort List
-        @@fortPriorities[card["name"].partition(" - ")[0]] = 3 if card["idLabels"].include? "56426feacf6120c17286189d" # High
-        @@fortPriorities[card["name"].partition(" - ")[0]] = 2 if card["idLabels"].include? "56cb1c79152c3f92fd1fda4a" # Highest
-        @@fortPriorities[card["name"].partition(" - ")[0]] = 1 if card["idLabels"].include? "56426feacf6120c1728618a5" # For the Princess
+        @@fortPriorities[card["name"].partition(/\s+-\s+/)[0]] = 3 if card["idLabels"].include? "56426feacf6120c17286189d" # High
+        @@fortPriorities[card["name"].partition(/\s+-\s+/)[0]] = 2 if card["idLabels"].include? "56cb1c79152c3f92fd1fda4a" # Highest
+        @@fortPriorities[card["name"].partition(/\s+-\s+/)[0]] = 1 if card["idLabels"].include? "56426feacf6120c1728618a5" # For the Princess
       elsif card["idList"] == "56dad9e692b8c972022eec9b" && card["name"] == "!!! DO NOT FORTIFY EVER !!!"
         reached_do_not_fort = true
       elsif card["idList"] == "56dad9e692b8c972022eec9b" && reached_do_not_fort && card["name"].include?("!!!")
