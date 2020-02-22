@@ -23,6 +23,29 @@
         timeago().render(nodes);
 
         $('[data-toggle="tooltip"]').tooltip();
+
+        $('#hide-no-prio').on('change', function() {
+          if (this.checked) {
+            $('div.card table.table').each(function() {
+              var columnindex = $('th:contains("Fort Prio")', this).index();
+              if (columnindex != -1)
+              {
+                $('tbody tr', this).each(function() {
+                  var column = $('td', this).eq(columnindex);
+                  if (column.text() !== 'Top' && column.text() !== 'Higher' && column.text() !== 'High')
+                  {
+                    $(this).hide();
+                  }
+                });
+              }
+            });
+          } else {
+            $('tr').show();
+          }
+          $("tr:visible").each(function (index) {
+            $(this).css("background-color", !!(index & 1)? "rgba(0,0,0,.05)" : "rgba(0,0,0,0)");
+          });
+        });
       });
     </script>
   </body>

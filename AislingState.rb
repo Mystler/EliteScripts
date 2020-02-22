@@ -309,6 +309,7 @@ puts
   else
     out.puts 'This is the advanced report without filters and priorities, intended for full information and overview.\\\\'
     out.puts "For the simple report for players [click here](index.html)."
+    out.puts '<br><br><input id="hide-no-prio" type="checkbox"><label for="hide-no-prio">Hide entries without fortification priority</label>'
   end
   out.puts "</p>"
   out.puts
