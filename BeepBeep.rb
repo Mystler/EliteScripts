@@ -26,18 +26,36 @@ end
 =end
 
 last_checked_epoch = 0
+active_cmdr = []
 history_listener = Listen.to("#{ENV["LOCALAPPDATA"]}\\Frontier Developments\\Elite Dangerous\\CommanderHistory", force_polling: true, latency: 1) do |modified, added, removed|
   if modified.any?
     data = JSON.parse(File.read(modified[0]))
 
-    new_entries = data["Interactions"].select { |x| x["Epoch"] > last_checked_epoch && !x["Interactions"].include?("WingMember") }
+    new_entries = data["Interactions"].select { |x| x["Epoch"] > last_checked_epoch }
     new_entries = new_entries.first(1) if last_checked_epoch == 0
-    if new_entries.any?
-      Sound.beep(2093.004522, 200)
-      Sound.beep(2093.004522, 200)
-
-      new_entries.each do |entry|
-        puts "#{Time.now.to_s}: Beeping change for #{entry["UserID"]}/#{entry["CommanderID"]}"
+    new_entries.each do |entry|
+      if active_cmdr.include?(entry["CommanderID"]) # Already in instance, assume leaving
+        active_cmdr.delete(entry["CommanderID"])
+        if x["Interactions"].include?("WingMember")
+          puts "#{Time.now.to_s}: Beeping leave for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
+          Sound.beep(440, 600)
+        else
+          puts "#{Time.now.to_s}: Beeping leave for #{entry["UserID"]}/#{entry["CommanderID"]}"
+          Sound.beep(2093, 600)
+        end
+      else # Entering instance
+        active_cmdr.push(entry["CommanderID"])
+        if x["Interactions"].include?("WingMember")
+          puts "#{Time.now.to_s}: Beeping join for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
+          Sound.beep(440, 200)
+          Sound.beep(575, 200)
+          Sound.beep(711, 200)
+        else
+          puts "#{Time.now.to_s}: Beeping join for #{entry["UserID"]}/#{entry["CommanderID"]}"
+          Sound.beep(2093, 200)
+          Sound.beep(2093, 200)
+          Sound.beep(2093, 200)
+        end
       end
     end
 
