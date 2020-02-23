@@ -86,7 +86,7 @@ class AislingDataSet
       out.puts "#{@table ? "|" : "-"} #{line}"
     end
     if @table && !lines.empty?
-      out.puts "{:.table .table-striped .table-borderless}"
+      out.puts "{:.table .table-borderless}"
       out.puts "</div>"
     end
     out.puts "NONE" if lines.empty?

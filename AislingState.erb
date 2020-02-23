@@ -6,7 +6,7 @@
     <meta name="generator" content="kramdown <%= ::Kramdown::VERSION %>" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-    <link rel="stylesheet" href="style.css" type="text/css">
+    <link rel="stylesheet" href="style.css?v=2" type="text/css">
     <link rel="icon" type="image/svg+xml" href="aisling-duval.svg" sizes="any">
   </head>
   <body>
@@ -24,8 +24,8 @@
 
         $('[data-toggle="tooltip"]').tooltip();
 
-        $('#hide-no-prio').on('change', function() {
-          if (this.checked) {
+        function restripeTable() {
+          if ($('#hide-no-prio').prop('checked')) {
             $('div.card table.table').each(function() {
               var columnindex = $('th:contains("Fort Prio")', this).index();
               if (columnindex != -1)
@@ -42,10 +42,17 @@
           } else {
             $('tr').show();
           }
-          $("tr:visible").each(function (index) {
-            $(this).css("background-color", !!(index & 1)? "rgba(0,0,0,.05)" : "rgba(0,0,0,0)");
+          $('div.card table.table').each(function() {
+            $('tbody tr', this).removeClass("stripe");
+            $("tbody tr:visible", this).each(function (index) {
+              if (!(index & 1))
+                $(this).addClass("stripe");
+            });
           });
-        });
+        }
+
+        $('#hide-no-prio').on('change', restripeTable);
+        restripeTable();
       });
     </script>
   </body>
