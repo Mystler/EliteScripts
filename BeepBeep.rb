@@ -36,7 +36,7 @@ history_listener = Listen.to("#{ENV["LOCALAPPDATA"]}\\Frontier Developments\\Eli
     new_entries.each do |entry|
       if active_cmdr.include?(entry["CommanderID"]) # Already in instance, assume leaving
         active_cmdr.delete(entry["CommanderID"])
-        if x["Interactions"].include?("WingMember")
+        if entry["Interactions"].include?("WingMember")
           puts "#{Time.now.to_s}: Beeping leave for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
           Sound.beep(440, 600)
         else
@@ -45,7 +45,7 @@ history_listener = Listen.to("#{ENV["LOCALAPPDATA"]}\\Frontier Developments\\Eli
         end
       else # Entering instance
         active_cmdr.push(entry["CommanderID"])
-        if x["Interactions"].include?("WingMember")
+        if entry["Interactions"].include?("WingMember")
           puts "#{Time.now.to_s}: Beeping join for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
           Sound.beep(440, 200)
           Sound.beep(575, 200)
