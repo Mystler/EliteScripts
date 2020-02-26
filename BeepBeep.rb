@@ -7,6 +7,10 @@ require "win32/sapi5"
 include Win32
 require_relative "lib/EliteJournal"
 
+if defined?(Ocra)
+  exit
+end
+
 =begin
 last_checked_journal = Time.now.to_s
 journal_listener = Listen.to(EliteJournal.path, force_polling: true, latency: 1, only: [/Journal\..*\.log$/]) do |modified, added, removed|
@@ -26,7 +30,10 @@ end
 =end
 
 last_checked_epoch = 0
-active_cmdr = []
+cmdr_freqs = {}
+next_friendly_freq = 440.0
+next_unknown_freq = 2093.12
+freq_step = 1.059463
 history_listener = Listen.to("#{ENV["LOCALAPPDATA"]}\\Frontier Developments\\Elite Dangerous\\CommanderHistory", force_polling: true, latency: 1) do |modified, added, removed|
   if modified.any?
     data = JSON.parse(File.read(modified[0]))
@@ -34,28 +41,21 @@ history_listener = Listen.to("#{ENV["LOCALAPPDATA"]}\\Frontier Developments\\Eli
     new_entries = data["Interactions"].select { |x| x["Epoch"] > last_checked_epoch }
     new_entries = new_entries.first(1) if last_checked_epoch == 0
     new_entries.each do |entry|
-      if active_cmdr.include?(entry["CommanderID"]) # Already in instance, assume leaving
-        active_cmdr.delete(entry["CommanderID"])
-        if entry["Interactions"].include?("WingMember")
-          puts "#{Time.now.to_s}: Beeping leave for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
-          Sound.beep(440, 600)
-        else
-          puts "#{Time.now.to_s}: Beeping leave for #{entry["UserID"]}/#{entry["CommanderID"]}"
-          Sound.beep(2093, 600)
+      if entry["Interactions"].include?("WingMember")
+        if !cmdr_freqs.has_key?(entry["CommanderID"])
+          cmdr_freqs[entry["CommanderID"]] = next_friendly_freq
+          next_friendly_freq = next_friendly_freq * freq_step
         end
-      else # Entering instance
-        active_cmdr.push(entry["CommanderID"])
-        if entry["Interactions"].include?("WingMember")
-          puts "#{Time.now.to_s}: Beeping join for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
-          Sound.beep(440, 200)
-          Sound.beep(575, 200)
-          Sound.beep(711, 200)
-        else
-          puts "#{Time.now.to_s}: Beeping join for #{entry["UserID"]}/#{entry["CommanderID"]}"
-          Sound.beep(2093, 200)
-          Sound.beep(2093, 200)
-          Sound.beep(2093, 200)
+        puts "#{Time.now.to_s}: Beeping change for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
+        Sound.beep(cmdr_freqs[entry["CommanderID"]], 400)
+      else
+        if !cmdr_freqs.has_key?(entry["CommanderID"])
+          cmdr_freqs[entry["CommanderID"]] = next_unknown_freq
+          next_unknown_freq = next_unknown_freq * freq_step
         end
+        puts "#{Time.now.to_s}: Beeping change for #{entry["UserID"]}/#{entry["CommanderID"]}"
+        Sound.beep(cmdr_freqs[entry["CommanderID"]], 200)
+        Sound.beep(cmdr_freqs[entry["CommanderID"]], 200)
       end
     end
 

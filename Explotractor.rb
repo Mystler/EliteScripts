@@ -4,6 +4,10 @@ require "clipboard"
 require_relative "lib/Interactive"
 require_relative "lib/EliteJournal"
 
+if defined?(Ocra)
+  exit
+end
+
 puts "================"
 puts "= Explotractor ="
 puts "================"
