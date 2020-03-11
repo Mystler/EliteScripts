@@ -30,7 +30,8 @@ end
 =end
 
 last_checked_epoch = 0
-cmdr_freqs = {}
+friendly_cmdr_freqs = {}
+unknown_cmdr_freqs = {}
 next_friendly_freq = 440.0
 next_unknown_freq = 2093.12
 freq_step = 1.059463
@@ -42,20 +43,20 @@ history_listener = Listen.to("#{ENV["LOCALAPPDATA"]}\\Frontier Developments\\Eli
     new_entries = new_entries.first(1) if last_checked_epoch == 0
     new_entries.each do |entry|
       if entry["Interactions"].include?("WingMember")
-        if !cmdr_freqs.has_key?(entry["CommanderID"])
-          cmdr_freqs[entry["CommanderID"]] = next_friendly_freq
+        if !friendly_cmdr_freqs.has_key?(entry["CommanderID"])
+          friendly_cmdr_freqs[entry["CommanderID"]] = next_friendly_freq
           next_friendly_freq = next_friendly_freq * freq_step
         end
         puts "#{Time.now.to_s}: Beeping change for #{entry["UserID"]}/#{entry["CommanderID"]} (Wing Mate)"
-        Sound.beep(cmdr_freqs[entry["CommanderID"]], 400)
+        Sound.beep(friendly_cmdr_freqs[entry["CommanderID"]], 400)
       else
-        if !cmdr_freqs.has_key?(entry["CommanderID"])
-          cmdr_freqs[entry["CommanderID"]] = next_unknown_freq
+        if !unknown_cmdr_freqs.has_key?(entry["CommanderID"])
+          unknown_cmdr_freqs[entry["CommanderID"]] = next_unknown_freq
           next_unknown_freq = next_unknown_freq * freq_step
         end
         puts "#{Time.now.to_s}: Beeping change for #{entry["UserID"]}/#{entry["CommanderID"]}"
-        Sound.beep(cmdr_freqs[entry["CommanderID"]], 200)
-        Sound.beep(cmdr_freqs[entry["CommanderID"]], 200)
+        Sound.beep(unknown_cmdr_freqs[entry["CommanderID"]], 200)
+        Sound.beep(unknown_cmdr_freqs[entry["CommanderID"]], 200)
       end
     end
 
