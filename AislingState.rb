@@ -163,6 +163,10 @@ ad_control.each do |ctrl_sys|
     sys_fav_facs = sys_facs.select { |x| is_strong_gov(x) }
     sys_weak_facs = sys_facs.select { |x| is_weak_gov(x) }
 
+    if !sys_fac_data["controllingFaction"]
+      sys_fac_data["controllingFaction"] = sys_facs.max_by { |x| x["influence"] }
+    end
+
     # Update last update timestamp for the entire system
     sys["updated_at"] = sys_fac_data["factions"].first["lastUpdate"]
 
