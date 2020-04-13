@@ -1,0 +1,30 @@
+aisling:
+  name: Aisling Duval
+  icon: aisling-duval.svg
+  css_class: ad
+  headquarters: Cubeo
+  strong_govs:
+    - cooperative
+    - confederacy
+    - communism
+  strong_allegiance_blacklist:
+    - empire
+  weak_govs:
+    - feudal
+    - prison colony
+    - theocracy
+  output: advanced.html
+  simple_output: index.html
+winters:
+  name: Felicia Winters
+  icon: felicia-winters.svg
+  css_class: fw
+  headquarters: Rhea
+  strong_govs:
+    - corporate
+  weak_govs:
+    - feudal
+    - patronage
+    - communism
+    - cooperative
+  output: winters.html

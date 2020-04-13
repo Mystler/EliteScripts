@@ -5,10 +5,8 @@ class AislingStateConfig
   @@initialized = false
   @@prioritySpheres = {}
   @@fortPriorities = {}
-  @@blacklistIgnored = ["Cubeo"] # Ignore in general because HQ cannot be fortified
   @@blacklistFortify = []
   @@blacklistManagedByOthers = []
-  @@cacheOnly = false # Debug switch, keep to false in production
 
   def self.fetchData
     return if @@initialized
@@ -43,11 +41,6 @@ class AislingStateConfig
     @@initialized = true
   end
 
-  def self.blacklistIgnored
-    fetchData
-    return @@blacklistIgnored
-  end
-
   def self.blacklistFortify
     fetchData
     return @@blacklistFortify
@@ -60,7 +53,7 @@ class AislingStateConfig
 
   def self.blacklistCombined
     fetchData
-    return @@blacklistIgnored + @@blacklistFortify + @@blacklistManagedByOthers
+    return @@blacklistFortify + @@blacklistManagedByOthers
   end
 
   def self.blacklistText
@@ -77,9 +70,5 @@ class AislingStateConfig
   def self.fortPriorities
     fetchData
     return @@fortPriorities
-  end
-
-  def self.cacheOnly?
-    return @@cacheOnly
   end
 end

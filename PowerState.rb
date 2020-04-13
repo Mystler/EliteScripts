@@ -3,10 +3,38 @@ require "bundler/setup"
 require "json"
 require "matrix"
 require "kramdown"
+require "ostruct"
+require "optparse"
+
+options = {cache_only: false}
+OptionParser.new do |opts|
+  opts.banner = "Usage: PowerState.rb [options]"
+
+  opts.on("-p", "--power=POWER", "Identifier for the power to generate a report for") do |power|
+    PowerData = OpenStruct.new(YAML.load(File.read("powers.yml"))[power])
+
+    if power == "aisling"
+      require_relative "AislingStateConfig"
+    end
+  end
+
+  opts.on("-c", "--cache-only", "Do not fetch new data from EDSM") do
+    options[:cache_only] = true
+  end
+
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
+end.parse!
+
+if !defined?(PowerData)
+  puts "ERROR: Missing power parameter."
+  exit
+end
 
 require_relative "lib/EDSMClient"
-require_relative "AislingStateConfig"
-require_relative "AislingStateData"
+require_relative "PowerStateData"
 
 advancedOut = StringIO.new
 simpleOut = StringIO.new
@@ -14,36 +42,61 @@ simpleOut = StringIO.new
 # Total data
 systems = JSON.parse(File.read("data/systems_populated.json"))
 
-# AD specific data subsets
-ad_control = systems.select { |x| x["power"] == "Aisling Duval" && x["power_state"] == "Control" }
-ad_exploited = systems.select { |x| x["power"] == "Aisling Duval" && x["power_state"] == "Exploited" }
+# Power specific system subsets
+systems_control = systems.select { |x| x["power"] == PowerData.name && x["power_state"] == "Control" }
+systems_exploited = systems.select { |x| x["power"] == PowerData.name && x["power_state"] == "Exploited" }
 
 # Inject location vector into systems
 systems.each do |sys|
   sys["location"] = Vector[sys["x"], sys["y"], sys["z"]]
 end
 
-# Inject distance to Cubeo into AD systems
-ad_cubeo = ad_control.find { |x| x["name"] == "Cubeo" }
-(ad_control + ad_exploited).each do |sys|
-  sys["dist_to_hq"] = (sys["location"] - ad_cubeo["location"]).r.round(1)
+# Inject distance to HQ into power systems
+headquarters = systems_control.find { |x| x["name"] == PowerData.headquarters }
+(systems_control + systems_exploited).each do |sys|
+  sys["dist_to_hq"] = (sys["location"] - headquarters["location"]).r.round(1)
 end
 
-# Helpers
+# Power Helpers
 def is_strong_gov(obj)
   return false unless obj["government"]
-  return ["cooperative", "confederacy", "communism"].include?(obj["government"].downcase) && obj["allegiance"] != "Empire"
+  return false if PowerData.strong_allegiance_blacklist && PowerData.strong_allegiance_blacklist.include?(obj["allegiance"].downcase)
+  return PowerData.strong_govs.include?(obj["government"].downcase)
 end
 
 def is_weak_gov(obj)
   return false unless obj["government"]
-  return ["feudal", "prison colony", "theocracy"].include?(obj["government"].downcase)
+  return PowerData.weak_govs.include?(obj["government"].downcase)
+end
+
+# Analyzation helpers
+def is_conflicting(states)
+  return (["civil war", "war"] & states.collect { |x| x.downcase }).any?
+end
+
+def system_cc_income(population)
+  return 0 if population <= 0
+
+  # Based on: https://www.reddit.com/r/EliteMahon/comments/3gua6m/calculation_for_radius_income/cu5yb7o/
+  # Fitting factor I found is 3.1625
+  return Math.log10(population.to_f / 3.1625).floor.clamp(2, 9) + 2
+end
+
+def system_cc_upkeep(dist)
+  # Experimental fitting (via R) until I get some better formula
+  return 20 unless dist > 0
+  return (0.0000001977 * dist ** 3 + 0.0009336 * dist ** 2 + 0.006933 * dist + 0.333 + 20).round
+end
+
+def system_cc_overhead(no_of_systems)
+  # Source see: https://www.reddit.com/r/EliteMahon/comments/3fq3h6/the_economics_of_powerplay/
+  return [(11.5 * no_of_systems / 42) ** 3, 5.4 * 11.5 * no_of_systems].min.to_f / no_of_systems.to_f
 end
 
 # Collecting data into these
 ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
   "Control systems with impossible fortification bonus", "fortify",
-  "These do not have CCCs in enough exploited systems (50% cannot be reached)."
+  "These do not have favorable factions in enough exploited systems (50% cannot be reached)."
 )
 ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems without active fortification bonus where possible", "fortify")
 ctrl_bonus_active = ControlSystemFlipStateDataSet.new("Control systems with active fortification bonus", "fortify")
@@ -54,10 +107,10 @@ ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", 
 ctrl_radius_income = CCIncomeDataSet.new("Control systems by radius income", "finance", "CC values calculated with experimental formulas.")
 fac_fav_push = FavPushFactionDataSet.new(
   "Best factions to push to get fortification bonus", "fortify",
-  "Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable."
+  "Shows the best factions in their system if there is no favorable one in control and the sphere is flippable."
 )
 fac_fav_war = WarringCCCDataSet.new("Warring favorable factions", "combat")
-ctrl_trends = TopCCCInfMovements.new("Favourable factions influence movements", "eye", "Lists control spheres by changes in total percent points of influence in CCCs.")
+ctrl_trends = TopCCCInfMovements.new("Favourable factions influence movements", "eye", "Lists control spheres by changes in total percent points of influence in favorables.")
 retreats = RetreatsDataSet.new("Noteworthy retreats", "combat")
 
 simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
@@ -66,7 +119,7 @@ simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
 )
 simple_fac_push = SimpleFavPushFactionDataSet.new(
   "Best factions to push", "fortify",
-  "Shows the best CCC factions in their system for all our priority spheres."
+  "Shows the best factions in their system for all our priority spheres."
 )
 simple_data_drops = StationDropDataSet.new(
   "Recommended stations for data drops", "finance",
@@ -74,21 +127,21 @@ simple_data_drops = StationDropDataSet.new(
 )
 simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
 
-# Process AD data
+# Process data
 puts "Start processing..."
 puts
 
-ad_system_cc_overhead = system_cc_overhead(ad_control.size).round(1)
+power_system_cc_overhead = system_cc_overhead(systems_control.size).round(1)
 processed_income_systems = []
 overlapped_systems = []
 total_cc_income = 0
 total_cc_upkeep = 0
-total_cc_overheads = ad_system_cc_overhead * ad_control.size
-ad_control.each do |ctrl_sys|
+total_cc_overheads = power_system_cc_overhead * systems_control.size
+systems_control.each do |ctrl_sys|
   puts "Processing control sphere #{ctrl_sys["name"]}..."
 
   # Get exploited systems in profit area
-  exploited = ad_exploited.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
+  exploited = systems_exploited.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
 
   # Add control system to exploited systems for easy iteration
   exploited.push ctrl_sys
@@ -101,26 +154,31 @@ ad_control.each do |ctrl_sys|
   radius_income = 0
   total_ccc_inf = {now: 0, week: 0, month: 0}
 
-  # Get or inject Trello priorities
-  priority = AislingStateConfig.prioritySpheres[ctrl_sys["name"]] || 9999
-  ctrl_sys["fortPrio"] = AislingStateConfig.fortPriorities[ctrl_sys["name"]] || 9999
-  ctrl_sys["fortPrioText"] = case ctrl_sys["fortPrio"]
-                             when 1
-                               "Top"
-                             when 2
-                               "Higher"
-                             when 3
-                               "High"
-                             else
-                               "None"
-                             end
-  ctrl_sys["fortPrioText"] = "Do Not Fort" if AislingStateConfig.blacklistFortify.include?(ctrl_sys["name"])
+  # Get or inject Trello priorities for AD
+  priority = 9999
+  ctrl_sys["fortPrio"] = 9999
+  ctrl_sys["fortPrioText"] = "Unknown"
+  if defined?(AislingStateConfig)
+    priority = AislingStateConfig.prioritySpheres[ctrl_sys["name"]] || 9999
+    ctrl_sys["fortPrio"] = AislingStateConfig.fortPriorities[ctrl_sys["name"]] || 9999
+    ctrl_sys["fortPrioText"] = case ctrl_sys["fortPrio"]
+                               when 1
+                                 "Top"
+                               when 2
+                                 "Higher"
+                               when 3
+                                 "High"
+                               else
+                                 "None"
+                               end
+    ctrl_sys["fortPrioText"] = "Do Not Fort" if AislingStateConfig.blacklistFortify.include?(ctrl_sys["name"])
+  end
 
   # Process per system
   local_fac_fav_push = []
   exploited.each do |sys|
     puts "Processing system #{sys["name"]} (#{sys["edsm_id"]})..."
-    sys_fac_data = AislingStateConfig.cacheOnly? ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
+    sys_fac_data = options[:cache_only] ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
 
     # EDSM Cache handling
     cache_file = "data/edsm_cache/#{sys["edsm_id"]}.json"
@@ -214,13 +272,13 @@ ad_control.each do |ctrl_sys|
     sys_facs.select { |x| (x["activeStates"] + x["pendingStates"]).any? { |y| y["state"] == "Retreat" } }.each do |retreat_fac|
       retreat_prio = 0
       if is_strong_gov(retreat_fac) && sys_fav_facs.size == 1
-        retreat_info = "Last CCC in system"
+        retreat_info = "Last Fav in system"
         retreat_prio = 1
       elsif sys_facs.size >= 7
-        retreat_info = "#{sys_facs.size}th faction#{" (CCC)" if is_strong_gov(retreat_fac)}"
+        retreat_info = "#{sys_facs.size}th faction#{" (Fav)" if is_strong_gov(retreat_fac)}"
         retreat_prio = 2
       elsif is_strong_gov(retreat_fac)
-        retreat_info = "CCC"
+        retreat_info = "Fav"
         retreat_prio = 3
       end
       retreats.addItem({control_system: ctrl_sys, system: sys, faction: retreat_fac, retreat_info: retreat_info, retreat_prio: retreat_prio}) if retreat_prio > 0
@@ -243,15 +301,17 @@ ad_control.each do |ctrl_sys|
   else
     ctrl_bonus_impossible.addItem item
   end
-  simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
+  if defined?(AislingStateConfig)
+    simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
+  end
   ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_gov >= 0.5
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys["dist_to_hq"])
   total_cc_upkeep += upkeep
   ctrl_upkeep.addItem({control_system: ctrl_sys, upkeep: upkeep})
-  radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
-  ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: ad_system_cc_overhead})
+  radius_profit = (radius_income - upkeep - power_system_cc_overhead).round(1)
+  ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: power_system_cc_overhead})
 
   total_ccc_inf[:change_week] = total_ccc_inf[:now] - total_ccc_inf[:week]
   total_ccc_inf[:change_month] = total_ccc_inf[:now] - total_ccc_inf[:month]
@@ -265,7 +325,7 @@ end
 puts "Post-processing..."
 puts
 
-ad_control.each do |ctrl_sys|
+systems_control.each do |ctrl_sys|
   overlapped = overlapped_systems.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
   ctrl_sys["overlapped_systems_no"] = overlapped.size
   ctrl_sys["overlapped_systems_cc"] = overlapped.reduce(0) { |sum, x| sum + x["sys_cc_income"] }
@@ -279,18 +339,18 @@ puts
 
 # Write headers
 [advancedOut, simpleOut].each do |out|
-  out.puts "# Aisling Duval Report"
+  out.puts "# #{PowerData.name} Report"
   out.puts "{:.no_toc .text-center}"
-  out.puts '<p class="text-center"><img alt="Aisling Duval" src="aisling-duval.svg" width="200" height="200"></p>'
+  out.puts "<p class=\"text-center\"><img alt=\"#{PowerData.name}\" src=\"#{PowerData.icon}\" width=\"200\" height=\"200\"></p>"
   out.puts "<p class=\"text-center\">Generated: <u><em class=\"timeago\" datetime=\"#{Time.now}\" data-toggle=\"tooltip\" title=\"#{Time.now}\"></em></u></p>"
   out.puts '<p class="text-center" markdown="1">'
   if out == simpleOut
     out.puts 'This is the simple report, based on priority targets and intended to help focus our BGS efforts.\\\\'
-    out.puts "For an unfiltered, advanced report [click here](advanced.html)."
+    out.puts "For an unfiltered, advanced report [click here](#{PowerData.output})."
   else
-    out.puts 'This is the advanced report without filters and priorities, intended for full information and overview.\\\\'
-    out.puts "For the simple report for players [click here](index.html)."
-    out.puts '<br><br><input id="hide-no-prio" type="checkbox" checked><label for="hide-no-prio">Hide entries without fortification priority</label>'
+    out.puts "This is the advanced report with only limited filters and priorities, intended for full information and overview."
+    out.puts "<br>For the simple report for players [click here](index.html)." if PowerData.simple_output
+    out.puts '<br><br><input id="hide-no-prio" type="checkbox" checked><label for="hide-no-prio">Hide entries without fortification priority</label>' if defined?(AislingStateConfig)
   end
   out.puts "</p>"
   out.puts
@@ -316,17 +376,22 @@ ctrl_upkeep.write(advancedOut)
 ctrl_radius_income.write(advancedOut)
 ctrl_trends.write(advancedOut)
 
-simple_spherestate.write(simpleOut)
-simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
-simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
-simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
+if PowerData.simple_output
+  simple_spherestate.write(simpleOut)
+  simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
+  simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
+  simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
+end
 
 # Write to files
-File.open("html/advanced.html", "w") do |f|
-  f.write Kramdown::Document.new(advancedOut.string, {template: "AislingState.erb"}).to_html
+File.open("html/#{PowerData.output}", "w") do |f|
+  f.write Kramdown::Document.new(advancedOut.string, {template: "PowerState.erb"}).to_html
 end
-File.open("html/index.html", "w") do |f|
-  f.write Kramdown::Document.new(simpleOut.string, {template: "AislingState.erb"}).to_html
+
+if PowerData.simple_output
+  File.open("html/#{PowerData.simple_output}", "w") do |f|
+    f.write Kramdown::Document.new(simpleOut.string, {template: "PowerState.erb"}).to_html
+  end
 end
 
 puts "Done!"
