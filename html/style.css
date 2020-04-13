@@ -2,13 +2,15 @@ body {
     margin-top: 1rem;
     font-family: 'Roboto', sans-serif;
     color: #FFF;
-    background: linear-gradient(#0066AA, #024);
     background-attachment: fixed;
 }
 
-a { color: #0099FF; }
+body.ad {
+    background-image: linear-gradient(#0066AA, #024);
+}
 
-a:hover { color: #77CCFF; }
+body.ad a { color: #0099FF; }
+body.ad a:hover { color: #77CCFF; }
 
 u {
     text-decoration: none;
@@ -19,7 +21,7 @@ u {
 
 .bg-darken { background-color: rgba(0, 0, 0, 0.1) !important; }
 
-.ad-icon {
+.card-icon {
     margin-top: -0.1em;
     height: 1em;
 }

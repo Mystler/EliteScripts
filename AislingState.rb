@@ -26,7 +26,7 @@ end
 # Inject distance to Cubeo into AD systems
 ad_cubeo = ad_control.find { |x| x["name"] == "Cubeo" }
 (ad_control + ad_exploited).each do |sys|
-  sys["dist_to_cubeo"] = (sys["location"] - ad_cubeo["location"]).r.round(1)
+  sys["dist_to_hq"] = (sys["location"] - ad_cubeo["location"]).r.round(1)
 end
 
 # Helpers
@@ -40,29 +40,6 @@ def is_weak_gov(obj)
   return ["feudal", "prison colony", "theocracy"].include?(obj["government"].downcase)
 end
 
-def is_conflicting(states)
-  return (["civil war", "war"] & states.collect { |x| x.downcase }).any?
-end
-
-def system_cc_income(population)
-  return 0 if population <= 0
-
-  # Based on: https://www.reddit.com/r/EliteMahon/comments/3gua6m/calculation_for_radius_income/cu5yb7o/
-  # Fitting factor I found is 3.1625
-  return Math.log10(population.to_f / 3.1625).floor.clamp(2, 9) + 2
-end
-
-def system_cc_upkeep(dist)
-  # Experimental fitting (via R) until I get some better formula
-  return 20 unless dist > 0
-  return (0.0000001977 * dist ** 3 + 0.0009336 * dist ** 2 + 0.006933 * dist + 0.333 + 20).round
-end
-
-def system_cc_overhead(no_of_systems)
-  # Source see: https://www.reddit.com/r/EliteMahon/comments/3fq3h6/the_economics_of_powerplay/
-  return [(11.5 * no_of_systems / 42) ** 3, 5.4 * 11.5 * no_of_systems].min.to_f / no_of_systems.to_f
-end
-
 # Collecting data into these
 ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
   "Control systems with impossible fortification bonus", "fortify",
@@ -70,7 +47,7 @@ ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
 )
 ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems without active fortification bonus where possible", "fortify")
 ctrl_bonus_active = ControlSystemFlipStateDataSet.new("Control systems with active fortification bonus", "fortify")
-ctrl_weak = AislingDataSet.new("Control systems that are UNFAVORABLE", "covert")
+ctrl_weak = PowerDataSet.new("Control systems that are UNFAVORABLE", "covert")
 ctrl_weak.setTable(["Control System", "Unfavorable Governments", "Total Governments", "From Cubeo"])
 ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance")
 ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", "CC values calculated with experimental formulas.")
@@ -267,10 +244,10 @@ ad_control.each do |ctrl_sys|
     ctrl_bonus_impossible.addItem item
   end
   simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
-  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_cubeo"]} LY" if weak_gov >= 0.5
+  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_gov >= 0.5
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
-  upkeep = system_cc_upkeep(ctrl_sys["dist_to_cubeo"])
+  upkeep = system_cc_upkeep(ctrl_sys["dist_to_hq"])
   total_cc_upkeep += upkeep
   ctrl_upkeep.addItem({control_system: ctrl_sys, upkeep: upkeep})
   radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
