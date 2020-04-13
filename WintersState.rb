@@ -5,45 +5,44 @@ require "matrix"
 require "kramdown"
 
 require_relative "lib/EDSMClient"
-require_relative "AislingStateConfig"
-require_relative "AislingStateData"
+require_relative "WintersStateConfig"
+require_relative "WintersStateData"
 
 advancedOut = StringIO.new
-simpleOut = StringIO.new
 
 # Total data
 systems = JSON.parse(File.read("data/systems_populated.json"))
 
 # AD specific data subsets
-ad_control = systems.select { |x| x["power"] == "Aisling Duval" && x["power_state"] == "Control" }
-ad_exploited = systems.select { |x| x["power"] == "Aisling Duval" && x["power_state"] == "Exploited" }
+fw_control = systems.select { |x| x["power"] == "Felicia Winters" && x["power_state"] == "Control" }
+fw_exploited = systems.select { |x| x["power"] == "Felicia Winters" && x["power_state"] == "Exploited" }
 
 # Inject location vector into systems
 systems.each do |sys|
   sys["location"] = Vector[sys["x"], sys["y"], sys["z"]]
 end
 
-# Inject distance to Cubeo into AD systems
-ad_cubeo = ad_control.find { |x| x["name"] == "Cubeo" }
-(ad_control + ad_exploited).each do |sys|
-  sys["dist_to_hq"] = (sys["location"] - ad_cubeo["location"]).r.round(1)
+# Inject distance to HQ into power systems
+fw_hq = fw_control.find { |x| x["name"] == "Rhea" }
+(fw_control + fw_exploited).each do |sys|
+  sys["dist_to_hq"] = (sys["location"] - fw_hq["location"]).r.round(1)
 end
 
 # Helpers
 def is_strong_gov(obj)
   return false unless obj["government"]
-  return ["cooperative", "confederacy", "communism"].include?(obj["government"].downcase) && obj["allegiance"] != "Empire"
+  return ["corporate"].include?(obj["government"].downcase)
 end
 
 def is_weak_gov(obj)
   return false unless obj["government"]
-  return ["feudal", "prison colony", "theocracy"].include?(obj["government"].downcase)
+  return ["feudal", "patronage", "communism", "cooperative"].include?(obj["government"].downcase)
 end
 
 # Collecting data into these
 ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
   "Control systems with impossible fortification bonus", "fortify",
-  "These do not have CCCs in enough exploited systems (50% cannot be reached)."
+  "These do not have Corps in enough exploited systems (50% cannot be reached)."
 )
 ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems without active fortification bonus where possible", "fortify")
 ctrl_bonus_active = ControlSystemFlipStateDataSet.new("Control systems with active fortification bonus", "fortify")
@@ -52,43 +51,23 @@ ctrl_weak.setTable(["Control System", "Unfavorable Governments", "Total Governme
 ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance")
 ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", "CC values calculated with experimental formulas.")
 ctrl_radius_income = CCIncomeDataSet.new("Control systems by radius income", "finance", "CC values calculated with experimental formulas.")
-fac_fav_push = FavPushFactionDataSet.new(
-  "Best factions to push to get fortification bonus", "fortify",
-  "Shows the best CCC factions in their system if there is no CCC in control and the sphere is flippable."
-)
 fac_fav_war = WarringCCCDataSet.new("Warring favorable factions", "combat")
-ctrl_trends = TopCCCInfMovements.new("Favourable factions influence movements", "eye", "Lists control spheres by changes in total percent points of influence in CCCs.")
-retreats = RetreatsDataSet.new("Noteworthy retreats", "combat")
 
-simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
-  "Control systems to focus on", "fortify",
-  "These are the spheres we want to flip next."
-)
-simple_fac_push = SimpleFavPushFactionDataSet.new(
-  "Best factions to push", "fortify",
-  "Shows the best CCC factions in their system for all our priority spheres."
-)
-simple_data_drops = StationDropDataSet.new(
-  "Recommended stations for data drops", "finance",
-  "Stations with factions we want to push in control."
-)
-simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
-
-# Process AD data
+# Process FW data
 puts "Start processing..."
 puts
 
-ad_system_cc_overhead = system_cc_overhead(ad_control.size).round(1)
+fw_system_cc_overhead = system_cc_overhead(fw_control.size).round(1)
 processed_income_systems = []
 overlapped_systems = []
 total_cc_income = 0
 total_cc_upkeep = 0
-total_cc_overheads = ad_system_cc_overhead * ad_control.size
-ad_control.each do |ctrl_sys|
+total_cc_overheads = fw_system_cc_overhead * fw_control.size
+fw_control.each do |ctrl_sys|
   puts "Processing control sphere #{ctrl_sys["name"]}..."
 
   # Get exploited systems in profit area
-  exploited = ad_exploited.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
+  exploited = fw_exploited.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
 
   # Add control system to exploited systems for easy iteration
   exploited.push ctrl_sys
@@ -101,26 +80,11 @@ ad_control.each do |ctrl_sys|
   radius_income = 0
   total_ccc_inf = {now: 0, week: 0, month: 0}
 
-  # Get or inject Trello priorities
-  priority = AislingStateConfig.prioritySpheres[ctrl_sys["name"]] || 9999
-  ctrl_sys["fortPrio"] = AislingStateConfig.fortPriorities[ctrl_sys["name"]] || 9999
-  ctrl_sys["fortPrioText"] = case ctrl_sys["fortPrio"]
-                             when 1
-                               "Top"
-                             when 2
-                               "Higher"
-                             when 3
-                               "High"
-                             else
-                               "None"
-                             end
-  ctrl_sys["fortPrioText"] = "Do Not Fort" if AislingStateConfig.blacklistFortify.include?(ctrl_sys["name"])
-
   # Process per system
   local_fac_fav_push = []
   exploited.each do |sys|
     puts "Processing system #{sys["name"]} (#{sys["edsm_id"]})..."
-    sys_fac_data = AislingStateConfig.cacheOnly? ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
+    sys_fac_data = WintersStateConfig.cacheOnly? ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
 
     # EDSM Cache handling
     cache_file = "data/edsm_cache/#{sys["edsm_id"]}.json"
@@ -184,10 +148,6 @@ ad_control.each do |ctrl_sys|
                       else "No"                       end
         if !opponent || !is_strong_gov(opponent)
           fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war})
-
-          if priority <= 3
-            simple_fac_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war, priority: priority})
-          end
         end
       end
 
@@ -196,34 +156,6 @@ ad_control.each do |ctrl_sys|
       last_month = Time.now.to_i - 30 * 86400.0
       total_ccc_inf[:week] += fac["influenceHistory"]&.dig(fac["influenceHistory"]&.keys&.reject { |x| x.to_i > last_week }&.sort&.last) || fac["influence"]
       total_ccc_inf[:month] += fac["influenceHistory"]&.dig(fac["influenceHistory"]&.keys&.reject { |x| x.to_i > last_month }&.sort&.last) || fac["influence"]
-    end
-    if best_fav_fac
-      local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
-      simple_fac_push.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
-    end
-
-    if priority <= 3 && best_fav_fac && !is_conflicting(best_fav_fac["active_states_names"] + best_fav_fac["pending_states_names"])
-      edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
-      ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["id"] == best_fav_fac["id"] }
-      ccc_stations.each do |station|
-        simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac, priority: priority})
-      end
-    end
-
-    # Retreat investigation
-    sys_facs.select { |x| (x["activeStates"] + x["pendingStates"]).any? { |y| y["state"] == "Retreat" } }.each do |retreat_fac|
-      retreat_prio = 0
-      if is_strong_gov(retreat_fac) && sys_fav_facs.size == 1
-        retreat_info = "Last CCC in system"
-        retreat_prio = 1
-      elsif sys_facs.size >= 7
-        retreat_info = "#{sys_facs.size}th faction#{" (CCC)" if is_strong_gov(retreat_fac)}"
-        retreat_prio = 2
-      elsif is_strong_gov(retreat_fac)
-        retreat_info = "CCC"
-        retreat_prio = 3
-      end
-      retreats.addItem({control_system: ctrl_sys, system: sys, faction: retreat_fac, retreat_info: retreat_info, retreat_prio: retreat_prio}) if retreat_prio > 0
     end
   end
 
@@ -234,29 +166,26 @@ ad_control.each do |ctrl_sys|
   needed_ccc = (gov_count * 0.5).ceil
   buffer_ccc = fav_gov_count - needed_ccc
   ctrl_sys["flip_data"] = {active_ccc: fav_gov_count, active_ccc_r: fav_gov, max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, needed_ccc: needed_ccc, buffer_ccc: buffer_ccc, total_govs: gov_count}
-  item = {control_system: ctrl_sys, priority: priority}
+  item = {control_system: ctrl_sys}
   if fav_gov >= 0.5
     ctrl_bonus_active.addItem item
   elsif poss_fav_gov >= 0.5
     ctrl_bonus_incomplete.addItem item
-    fac_fav_push.addItems local_fac_fav_push
   else
     ctrl_bonus_impossible.addItem item
   end
-  simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
+  simple_spherestate.addItem(item) if WintersStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
   ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_gov >= 0.5
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys["dist_to_hq"])
   total_cc_upkeep += upkeep
   ctrl_upkeep.addItem({control_system: ctrl_sys, upkeep: upkeep})
-  radius_profit = (radius_income - upkeep - ad_system_cc_overhead).round(1)
-  ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: ad_system_cc_overhead})
+  radius_profit = (radius_income - upkeep - fw_system_cc_overhead).round(1)
+  ctrl_radius_profit.addItem({control_system: ctrl_sys, profit: radius_profit, income: radius_income, upkeep: upkeep, overhead: fw_system_cc_overhead})
 
   total_ccc_inf[:change_week] = total_ccc_inf[:now] - total_ccc_inf[:week]
   total_ccc_inf[:change_month] = total_ccc_inf[:now] - total_ccc_inf[:month]
-
-  ctrl_trends.addItem({control_system: ctrl_sys, total_ccc_inf: total_ccc_inf})
 
   puts
 end
@@ -265,7 +194,7 @@ end
 puts "Post-processing..."
 puts
 
-ad_control.each do |ctrl_sys|
+fw_control.each do |ctrl_sys|
   overlapped = overlapped_systems.select { |x| (x["location"] - ctrl_sys["location"]).r <= 15.0 }
   ctrl_sys["overlapped_systems_no"] = overlapped.size
   ctrl_sys["overlapped_systems_cc"] = overlapped.reduce(0) { |sum, x| sum + x["sys_cc_income"] }
@@ -278,21 +207,11 @@ puts "Generating reports..."
 puts
 
 # Write headers
-[advancedOut, simpleOut].each do |out|
-  out.puts "# Aisling Duval Report"
+[advancedOut].each do |out|
+  out.puts "# Felicia Winters Report"
   out.puts "{:.no_toc .text-center}"
-  out.puts '<p class="text-center"><img alt="Aisling Duval" src="aisling-duval.svg" width="200" height="200"></p>'
+  out.puts '<p class="text-center"><img alt="Felicia Winters" src="felicia-winters.svg" width="200" height="200"></p>'
   out.puts "<p class=\"text-center\">Generated: <u><em class=\"timeago\" datetime=\"#{Time.now}\" data-toggle=\"tooltip\" title=\"#{Time.now}\"></em></u></p>"
-  out.puts '<p class="text-center" markdown="1">'
-  if out == simpleOut
-    out.puts 'This is the simple report, based on priority targets and intended to help focus our BGS efforts.\\\\'
-    out.puts "For an unfiltered, advanced report [click here](advanced.html)."
-  else
-    out.puts 'This is the advanced report without filters and priorities, intended for full information and overview.\\\\'
-    out.puts "For the simple report for players [click here](index.html)."
-    out.puts '<br><br><input id="hide-no-prio" type="checkbox" checked><label for="hide-no-prio">Hide entries without fortification priority</label>'
-  end
-  out.puts "</p>"
   out.puts
   out.puts '<div class="card bg-darken">'
   out.puts '  <h3 class="card-header">Table of Contents</h3>'
@@ -305,28 +224,17 @@ puts
 end
 
 fac_fav_war.write(advancedOut)
-retreats.write(advancedOut)
 ctrl_weak.write(advancedOut)
 ctrl_bonus_incomplete.write(advancedOut)
-fac_fav_push.write(advancedOut)
 ctrl_bonus_active.write(advancedOut)
 ctrl_bonus_impossible.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
 ctrl_upkeep.write(advancedOut)
 ctrl_radius_income.write(advancedOut)
-ctrl_trends.write(advancedOut)
-
-simple_spherestate.write(simpleOut)
-simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
-simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
-simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
 
 # Write to files
-File.open("html/advanced.html", "w") do |f|
-  f.write Kramdown::Document.new(advancedOut.string, {template: "AislingState.erb"}).to_html
-end
-File.open("html/index.html", "w") do |f|
-  f.write Kramdown::Document.new(simpleOut.string, {template: "AislingState.erb"}).to_html
+File.open("html/winters.html", "w") do |f|
+  f.write Kramdown::Document.new(advancedOut.string, {template: "WintersState.erb"}).to_html
 end
 
 puts "Done!"

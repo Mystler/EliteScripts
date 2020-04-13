@@ -5,12 +5,13 @@ body {
     background-attachment: fixed;
 }
 
-body.ad {
-    background-image: linear-gradient(#0066AA, #024);
-}
+body.ad { background-image: linear-gradient(#0066AA, #024); }
+body.fw { background-image: linear-gradient(#c76300, #462300); }
 
 body.ad a { color: #0099FF; }
 body.ad a:hover { color: #77CCFF; }
+body.fw a { color: #ff7f00; }
+body.fw a:hover { color: #ffc58b; }
 
 u {
     text-decoration: none;
