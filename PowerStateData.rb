@@ -145,7 +145,7 @@ class ControlSystemFlipStateDataSet < PowerDataSet
   end
 
   def tableHeader
-    header = ["Control System", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "From HQ"]
+    header = ["Control System", "Fav Governments", "Needed Fav Governments", "Possible Fav Governments", "Total Governments", "From HQ"]
     header.insert(-2, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end
@@ -179,7 +179,7 @@ class SimpleControlSystemFlipStateDataSet < PowerDataSet
   end
 
   def tableHeader
-    header = ["Control System", "Priority", "CCC Governments", "Needed CCC Governments", "Possible CCC Governments", "Total Governments", "From HQ"]
+    header = ["Control System", "Priority", "Fav Governments", "Needed Fav Governments", "Possible Fav Governments", "Total Governments", "From HQ"]
     header.insert(-2, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end
@@ -410,5 +410,52 @@ class RetreatsDataSet < PowerDataSet
 
   def sort
     @items.sort_by! { |x| [x[:retreat_prio], x[:control_system]["flip_data"][:buffer_ccc].abs, x[:system]["dist_to_hq"]] }
+  end
+end
+
+class FavFacDefenseDataSet < PowerDataSet
+  def itemToString(item)
+    return "#{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{(item[:faction]["influence"] * 100).round(1)}% \
+    | #{(item[:influence_lead] * 100).round(1)}% | #{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:buffer_ccc]} | \
+    #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:system]["dist_to_hq"]} LY | #{updated_at(item[:system])}"
+  end
+
+  def tableHeader
+    header = ["Faction", "States", "System", "Influence", "Lead", "Sphere", "Flip Buffer", "From HQ", "Updated"]
+    header.insert(-3, "Fort Prio") if defined?(AislingStateConfig)
+    return header
+  end
+
+  def filter
+    @items.reject! { |x| x[:influence_lead].abs > 0.2 }
+    @items.reject! { |x| x[:control_system]["name"] == PowerData.headquarters }
+    if defined?(AislingStateConfig)
+      @items.reject! { |x| AislingStateConfig.blacklistCombined.include?(x[:control_system]["name"]) }
+    end
+  end
+
+  def filterText
+    if defined?(AislingStateConfig)
+      return AislingStateConfig.blacklistText
+    end
+    return nil
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:influence_lead], x[:control_system]["fortPrio"]] }
+  end
+end
+
+class SimpleFavFacDefenseDataSet < FavFacDefenseDataSet
+  def filterText
+    return nil
+  end
+
+  def filter
+    @items.reject! { |x| x[:influence_lead].abs > 0.2 }
+  end
+
+  def sort
+    @items.sort_by! { |x| [x[:priority], x[:influence_lead], x[:control_system]["fortPrio"]] }
   end
 end

@@ -106,25 +106,33 @@ ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance")
 ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", "CC values calculated with experimental formulas.")
 ctrl_radius_income = CCIncomeDataSet.new("Control systems by radius income", "finance", "CC values calculated with experimental formulas.")
 fac_fav_push = FavPushFactionDataSet.new(
-  "Best factions to push to get fortification bonus", "fortify",
+  "Best factions to push for flipping", "fortify",
   "Shows the best factions in their system if there is no favorable one in control and the sphere is flippable."
 )
 fac_fav_war = WarringCCCDataSet.new("Warring favorable factions", "combat")
 ctrl_trends = TopCCCInfMovements.new("Favourable factions influence movements", "eye", "Lists control spheres by changes in total percent points of influence in favorables.")
 retreats = RetreatsDataSet.new("Noteworthy retreats", "combat")
+fac_fav_defense = FavFacDefenseDataSet.new(
+  "Best factions to push for defense", "fortify",
+  "Shows favorable factions that are in control but do not have a high lead."
+)
 
 simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
   "Control systems to focus on", "fortify",
   "These are the spheres we want to flip next."
 )
 simple_fac_push = SimpleFavPushFactionDataSet.new(
-  "Best factions to push", "fortify",
+  "Best factions to push for flipping", "fortify",
   "Shows the best factions in their system for all our priority spheres."
 )
-simple_data_drops = StationDropDataSet.new(
-  "Recommended stations for data drops", "finance",
-  "Stations with factions we want to push in control."
+simple_defense = SimpleFavFacDefenseDataSet.new(
+  "Best factions to push for defense", "fortify",
+  "Shows favorable factions that are in control but do not have a high lead."
 )
+#simple_data_drops = StationDropDataSet.new(
+#  "Recommended stations for data drops", "finance",
+#  "Stations with favorable factions in control."
+#)
 simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
 
 # Process data
@@ -201,13 +209,14 @@ systems_control.each do |ctrl_sys|
     if !sys_fac_data["controllingFaction"]
       sys_fac_data["controllingFaction"] = sys_facs.max_by { |x| x["influence"] }
     end
+    sys_controller = sys_fac_data["factions"].find { |x| x["id"] == sys_fac_data["controllingFaction"]["id"] }
 
     # Update last update timestamp for the entire system
     sys["updated_at"] = sys_fac_data["factions"].first["lastUpdate"]
 
     # Flip and CC state
-    fav_gov_count += 1 if is_strong_gov(sys_fac_data["controllingFaction"])
-    weak_gov_count += 1 if is_weak_gov(sys_fac_data["controllingFaction"])
+    fav_gov_count += 1 if is_strong_gov(sys_controller)
+    weak_gov_count += 1 if is_weak_gov(sys_controller)
     poss_fav_gov_count += 1 if sys_fav_facs.any?
     system_income = system_cc_income(sys["population"])
     radius_income += system_income
@@ -228,22 +237,22 @@ systems_control.each do |ctrl_sys|
       fac["pending_states_names"] = fac["pendingStates"].collect { |x| x["state"] }
       fac["states_output"] = "#{fac["active_states_names"].empty? ? "None" : fac["active_states_names"].join(", ")}#{"<br>(Pending: " + fac["pending_states_names"].join(", ") + ")" if fac["pending_states_names"].any?}"
 
-      if !is_strong_gov(sys_fac_data["controllingFaction"])
+      if !is_strong_gov(sys_controller)
         best_fav_fac = fac if !best_fav_fac || fac["influence"] > best_fav_fac["influence"]
       end
       if is_conflicting(fac["active_states_names"] + fac["pending_states_names"])
         opponent = sys_facs.select { |x| x["id"] != fac["id"] && x["influence"] == fac["influence"] }.first
-        control_war = if fac["id"] == sys_fac_data["controllingFaction"]["id"]
+        control_war = if fac["id"] == sys_controller["id"]
                         "Defending"
                       elsif !opponent
                         "???"
-                      elsif opponent["id"] == sys_fac_data["controllingFaction"]["id"]
+                      elsif opponent["id"] == sys_controller["id"]
                         "Attacking"
                       else "No"                       end
         if !opponent || !is_strong_gov(opponent)
           fac_fav_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war})
 
-          if priority <= 3
+          if priority <= 3 && control_war != "No"
             simple_fac_war.addItem({faction: fac, system: sys, control_system: ctrl_sys, control_war: control_war, priority: priority})
           end
         end
@@ -255,18 +264,25 @@ systems_control.each do |ctrl_sys|
       total_ccc_inf[:week] += fac["influenceHistory"]&.dig(fac["influenceHistory"]&.keys&.reject { |x| x.to_i > last_week }&.sort&.last) || fac["influence"]
       total_ccc_inf[:month] += fac["influenceHistory"]&.dig(fac["influenceHistory"]&.keys&.reject { |x| x.to_i > last_month }&.sort&.last) || fac["influence"]
     end
+
     if best_fav_fac
       local_fac_fav_push.push({faction: best_fav_fac, system: sys, control_system: ctrl_sys})
       simple_fac_push.addItem({faction: best_fav_fac, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
     end
 
-    if priority <= 3 && best_fav_fac && !is_conflicting(best_fav_fac["active_states_names"] + best_fav_fac["pending_states_names"])
-      edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
-      ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["id"] == best_fav_fac["id"] }
-      ccc_stations.each do |station|
-        simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: best_fav_fac, priority: priority})
-      end
+    if is_strong_gov(sys_controller) && !is_conflicting(sys_controller["active_states_names"] + sys_controller["pending_states_names"]) && sys_facs.size > 1
+      influence_lead = sys_controller["influence"] - (sys_facs - [sys_controller]).sort_by { |x| [-x["influence"]] }.first["influence"]
+      fac_fav_defense.addItem({faction: sys_controller, influence_lead: influence_lead, system: sys, control_system: ctrl_sys})
+      simple_defense.addItem({faction: sys_controller, influence_lead: influence_lead, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
     end
+
+    #    if priority <= 3 && is_strong_gov(sys_controller) && !is_conflicting(sys_controller["active_states_names"] + sys_controller["pending_states_names"])
+    #      edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
+    #      ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["id"] == sys_controller["id"] }
+    #      ccc_stations.each do |station|
+    #        simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: sys_controller, priority: priority})
+    #      end
+    #    end
 
     # Retreat investigation
     sys_facs.select { |x| (x["activeStates"] + x["pendingStates"]).any? { |y| y["state"] == "Retreat" } }.each do |retreat_fac|
@@ -370,6 +386,7 @@ ctrl_weak.write(advancedOut)
 ctrl_bonus_incomplete.write(advancedOut)
 fac_fav_push.write(advancedOut)
 ctrl_bonus_active.write(advancedOut)
+fac_fav_defense.write(advancedOut)
 ctrl_bonus_impossible.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
 ctrl_upkeep.write(advancedOut)
@@ -379,8 +396,9 @@ ctrl_trends.write(advancedOut)
 if PowerData.simple_output
   simple_spherestate.write(simpleOut)
   simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
-  simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
+  #simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
   simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
+  simple_defense.write(simpleOut) if simple_defense.hasItems()
 end
 
 # Write to files
