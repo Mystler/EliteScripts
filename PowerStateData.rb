@@ -8,7 +8,7 @@ def str_to_id(str)
 end
 
 def link_to_system(system)
-  return "#{system["name"]} <sup>[E](https://eddb.io/system/#{system["id"]}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system["edsm_id"]}/name/#{system["name"]}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{system["name"]}){:target=\"_blank\"}</sup>"
+  return "#{system["name"]} <sup>[E](https://eddb.io/system/factions/#{system["id"]}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system["edsm_id"]}/name/#{system["name"]}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{system["name"]}){:target=\"_blank\"}</sup>"
 end
 
 def link_to_faction(faction)
