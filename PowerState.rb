@@ -119,7 +119,7 @@ fac_fav_defense = FavFacDefenseDataSet.new(
 
 simple_spherestate = SimpleControlSystemFlipStateDataSet.new(
   "Control systems to focus on", "fortify",
-  "These are the spheres we want to flip next."
+  "These are the spheres we want to focus on."
 )
 simple_fac_push = SimpleFavPushFactionDataSet.new(
   "Best factions to push for flipping", "fortify",
