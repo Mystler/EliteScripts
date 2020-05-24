@@ -33,11 +33,9 @@ if !defined?(PowerData)
   exit
 end
 
+require_relative "lib/EDBGSClient"
 require_relative "lib/EDSMClient"
 require_relative "PowerStateData"
-
-advancedOut = StringIO.new
-simpleOut = StringIO.new
 
 # Total data
 systems = JSON.parse(File.read("data/systems_populated.json"))
@@ -347,11 +345,16 @@ systems_control.each do |ctrl_sys|
   ctrl_sys["overlapped_systems_cc"] = overlapped.reduce(0) { |sum, x| sum + x["sys_cc_income"] }
 end
 
+LastBGSTick = EDBGSClient.getLastTick()
+
 # Output
 ctrl_radius_profit.description = "CC values calculated with experimental formulas.<br><br>**Totals:** Income #{total_cc_income} CC, Upkeep #{total_cc_upkeep.round(0)} CC, Overheads #{total_cc_overheads.round(0)} CC<br>Expected Profit (No fortification) #{(total_cc_income - total_cc_upkeep - total_cc_overheads).round(0)} CC<br>Expected Profit (Full fortification) #{(total_cc_income - total_cc_overheads).round(0)} CC"
 
 puts "Generating reports..."
 puts
+
+advancedOut = StringIO.new
+simpleOut = StringIO.new
 
 # Write headers
 [advancedOut, simpleOut].each do |out|

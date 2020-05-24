@@ -17,11 +17,10 @@ end
 
 def updated_at(el)
   time = Time.at(el["updated_at"])
-  daysold = (Time.now - time) / 86400.0
   colorclass = "age-green"
-  if daysold > 4
-    colorclass = "age-red"
-  elsif daysold > 1
+  if time < LastBGSTick - 172800
+    colorclass = "age-red" # Last tick minus 2, so 3 ticks old
+  elsif time < LastBGSTick
     colorclass = "age-yellow"
   end
   return "<u><em class=\"timeago #{colorclass}\" datetime=\"#{time}\" data-toggle=\"tooltip\" title=\"#{time}\"></em></u>"
