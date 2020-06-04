@@ -50,6 +50,11 @@ table.dataTable.no-footer {
     border: none;
 }
 
+table.dataTable thead th,
+table.dataTable tbody td {
+    padding: 0.5rem;
+}
+
 .dataTables_filter label {
     color: #FFF;
 }
