@@ -39,3 +39,23 @@ u {
 .table tbody tr.stripe:hover {
     background-color: rgba(255,255,255,0.1);
 }
+
+/* DataTables Overrides */
+table.dataTable tbody tr {
+    background: none;
+}
+
+table.dataTable thead th,
+table.dataTable.no-footer {
+    border: none;
+}
+
+.dataTables_filter label {
+    color: #FFF;
+}
+.dataTables_filter input {
+    background-color: transparent;
+    border: 1px solid white;
+    border-radius: 6px;
+    color: #FFF;
+}
