@@ -153,7 +153,7 @@ systems_control.each do |ctrl_sys|
   exploited.push ctrl_sys
 
   # Init counters
-  gov_count = exploited.size
+  gov_count = 0
   fav_gov_count = 0
   weak_gov_count = 0
   poss_fav_gov_count = 0
@@ -184,9 +184,24 @@ systems_control.each do |ctrl_sys|
   local_fac_fav_push = []
   exploited.each do |sys|
     puts "Processing system #{sys["name"]} (#{sys["edsm_id"]})..."
-    sys_fac_data = options[:cache_only] ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
 
-    # EDSM Cache handling
+    # CC contribution
+    system_income = system_cc_income(sys["population"])
+    radius_income += system_income
+    sys["sys_cc_income"] = system_income
+
+    if !processed_income_systems.include?(sys["name"])
+      processed_income_systems.push sys["name"]
+      total_cc_income += system_income
+    elsif !overlapped_systems.include?(sys)
+      overlapped_systems.push sys
+    end
+
+    # Skip control system for the rest because since January 2020 it does not seem to matter for BGS flip state
+    next if sys == ctrl_sys
+
+    # EDSM Faction data and cache handling
+    sys_fac_data = options[:cache_only] ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
     cache_file = "data/edsm_cache/#{sys["edsm_id"]}.json"
     if sys_fac_data
       File.open(cache_file, "w") do |file|
@@ -212,20 +227,11 @@ systems_control.each do |ctrl_sys|
     # Update last update timestamp for the entire system
     sys["updated_at"] = sys_fac_data["factions"].first["lastUpdate"]
 
-    # Flip and CC state
+    # Flip state counters
+    gov_count += 1
     fav_gov_count += 1 if is_strong_gov(sys_controller)
     weak_gov_count += 1 if is_weak_gov(sys_controller)
     poss_fav_gov_count += 1 if sys_fav_facs.any?
-    system_income = system_cc_income(sys["population"])
-    radius_income += system_income
-    sys["sys_cc_income"] = system_income
-
-    if !processed_income_systems.include?(sys["name"])
-      processed_income_systems.push sys["name"]
-      total_cc_income += system_income
-    elsif !overlapped_systems.include?(sys)
-      overlapped_systems.push sys
-    end
 
     # Investigate favourable faction
     best_fav_fac = nil
@@ -303,13 +309,13 @@ systems_control.each do |ctrl_sys|
   fav_gov = fav_gov_count.to_f / gov_count.to_f
   poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f
   weak_gov = weak_gov_count.to_f / gov_count.to_f
-  needed_ccc = (gov_count * 0.5).ceil
+  needed_ccc = (gov_count * 0.5).to_i.next
   buffer_ccc = fav_gov_count - needed_ccc
   ctrl_sys["flip_data"] = {active_ccc: fav_gov_count, active_ccc_r: fav_gov, max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, needed_ccc: needed_ccc, buffer_ccc: buffer_ccc, total_govs: gov_count}
   item = {control_system: ctrl_sys, priority: priority}
-  if fav_gov >= 0.5
+  if fav_gov > 0.5
     ctrl_bonus_active.addItem item
-  elsif poss_fav_gov >= 0.5
+  elsif poss_fav_gov > 0.5
     ctrl_bonus_incomplete.addItem item
     fac_fav_push.addItems local_fac_fav_push
   else
@@ -318,7 +324,7 @@ systems_control.each do |ctrl_sys|
   if defined?(AislingStateConfig)
     simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
   end
-  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_gov >= 0.5
+  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_gov > 0.5
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys["dist_to_hq"])
