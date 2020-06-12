@@ -185,21 +185,6 @@ systems_control.each do |ctrl_sys|
   exploited.each do |sys|
     puts "Processing system #{sys["name"]} (#{sys["edsm_id"]})..."
 
-    # CC contribution
-    system_income = system_cc_income(sys["population"])
-    radius_income += system_income
-    sys["sys_cc_income"] = system_income
-
-    if !processed_income_systems.include?(sys["name"])
-      processed_income_systems.push sys["name"]
-      total_cc_income += system_income
-    elsif !overlapped_systems.include?(sys)
-      overlapped_systems.push sys
-    end
-
-    # Skip control system for the rest because since January 2020 it does not seem to matter for BGS flip state
-    next if sys == ctrl_sys
-
     # EDSM Faction data and cache handling
     sys_fac_data = options[:cache_only] ? nil : EDSMClient.getSystemFactionsById(sys["edsm_id"])
     cache_file = "data/edsm_cache/#{sys["edsm_id"]}.json"
@@ -215,6 +200,24 @@ systems_control.each do |ctrl_sys|
       end
     end
 
+    next if sys_fac_data["factions"].empty?
+
+    # CC contribution
+    system_income = system_cc_income(sys["population"])
+    radius_income += system_income
+    sys["sys_cc_income"] = system_income
+
+    if !processed_income_systems.include?(sys["name"])
+      processed_income_systems.push sys["name"]
+      total_cc_income += system_income
+    elsif !overlapped_systems.include?(sys)
+      overlapped_systems.push sys
+    end
+
+    # Skip control system for the rest because since January 2020 it does not seem to matter for BGS flip state
+    next if sys == ctrl_sys
+
+    # Faction var prep
     sys_facs = sys_fac_data["factions"].select { |x| x["influence"] > 0.0 }
     sys_fav_facs = sys_facs.select { |x| is_strong_gov(x) }
     sys_weak_facs = sys_facs.select { |x| is_weak_gov(x) }
