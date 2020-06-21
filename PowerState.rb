@@ -40,17 +40,17 @@ require_relative "PowerStateData"
 # Total data
 systems = JSON.parse(File.read("data/systems_populated.json"))
 
-# Power specific system subsets
-systems_control = systems.select { |x| x["power"] == PowerData.name && x["power_state"] == "Control" }
-systems_exploited = systems.select { |x| x["power"] == PowerData.name && x["power_state"] == "Exploited" }
-
 # Inject location vector into systems
 systems.each do |sys|
   sys["location"] = Vector[sys["x"], sys["y"], sys["z"]]
 end
 
+# Power specific system subsets
+systems_control = systems.select { |x| x["power"] == PowerData.name && (x["power_state"] == "Control" || x["power_state"] == "Home System") }
+systems_exploited = systems.select { |x| x["power"] == PowerData.name && x["power_state"] == "Exploited" }
+headquarters = systems.find { |x| x["name"] == PowerData.headquarters }
+
 # Inject distance to HQ into power systems
-headquarters = systems_control.find { |x| x["name"] == PowerData.headquarters }
 (systems_control + systems_exploited).each do |sys|
   sys["dist_to_hq"] = (sys["location"] - headquarters["location"]).r.round(1)
 end
