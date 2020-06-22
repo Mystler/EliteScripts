@@ -309,9 +309,9 @@ systems_control.each do |ctrl_sys|
   end
 
   # Analyze
-  fav_gov = fav_gov_count.to_f / gov_count.to_f
-  poss_fav_gov = poss_fav_gov_count.to_f / gov_count.to_f
-  weak_gov = weak_gov_count.to_f / gov_count.to_f
+  fav_gov = gov_count == 0 ? 0.0 : fav_gov_count.to_f / gov_count.to_f
+  poss_fav_gov = gov_count == 0 ? 0.0 : poss_fav_gov_count.to_f / gov_count.to_f
+  weak_gov = gov_count == 0 ? 0.0 : weak_gov_count.to_f / gov_count.to_f
   needed_ccc = (gov_count * 0.5).to_i.next
   buffer_ccc = fav_gov_count - needed_ccc
   ctrl_sys["flip_data"] = {active_ccc: fav_gov_count, active_ccc_r: fav_gov, max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, needed_ccc: needed_ccc, buffer_ccc: buffer_ccc, total_govs: gov_count}
