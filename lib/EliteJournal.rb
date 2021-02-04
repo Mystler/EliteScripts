@@ -3,11 +3,12 @@ require "json"
 require "time"
 require_relative "Interactive"
 
+require 'win32/registry' if Gem.win_platform?
+
 class EliteJournal
   def self.path
     if Gem.win_platform?
       begin
-        require 'win32/registry'
         reg_path = 'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
         reg = Win32::Registry::HKEY_CURRENT_USER.open(reg_path)
         save_path = reg['{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}'] # Saved Games
