@@ -1,10 +1,25 @@
+require "rubygems"
 require "json"
 require "time"
 require_relative "Interactive"
 
 class EliteJournal
   def self.path
-    return "#{ENV["USERPROFILE"]}\\Saved Games\\Frontier Developments\\Elite Dangerous"
+    if Gem.win_platform?
+      begin
+        require 'win32/registry'
+        reg_path = 'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
+        reg = Win32::Registry::HKEY_CURRENT_USER.open(reg_path)
+        save_path = reg['{4C5C32FF-BB9D-43B0-B5B4-2D72E54EAAA4}'] # Saved Games
+        if save_path
+          return "#{save_path}\\Frontier Developments\\Elite Dangerous"
+        end
+      rescue TypeError
+        # NOOP
+      end
+    end
+    custom_path = Interactive.UserInputPrompt("WARNING: Windows saved games folder not found. Please specify the ED Journal folder manually.", "ED Journal Folder")
+    return custom_path
   end
 
   # Events being nil will load all events, supply an array please!!!
