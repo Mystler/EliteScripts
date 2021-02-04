@@ -1,6 +1,7 @@
 require "rubygems"
 require "bundler/setup"
 require "clipboard"
+require "stringio"
 require_relative "lib/Interactive"
 require_relative "lib/EliteJournal"
 

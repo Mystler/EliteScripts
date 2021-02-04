@@ -5,6 +5,7 @@ require "matrix"
 require "kramdown"
 require "ostruct"
 require "optparse"
+require "stringio"
 
 options = {cache_only: false}
 OptionParser.new do |opts|
