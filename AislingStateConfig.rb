@@ -58,8 +58,8 @@ class AislingStateConfig
 
   def self.blacklistText
     fetchData
-    return "*Spheres ignored as DO NOT FORTIFY: #{@@blacklistFortify.join(", ")}*<br>\
-    *Spheres ignored as managed by another group of players: #{@@blacklistManagedByOthers.join(", ")}*"
+    return "Spheres ignored as DO NOT FORTIFY: #{@@blacklistFortify.join(", ")}<br>\
+    Spheres ignored as managed by another group of players: #{@@blacklistManagedByOthers.join(", ")}"
   end
 
   def self.prioritySpheres
