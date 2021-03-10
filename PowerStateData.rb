@@ -8,11 +8,11 @@ def str_to_id(str)
 end
 
 def link_to_system(system)
-  return "#{system["name"]} <sup>[E](https://eddb.io/system/factions/#{system["id"]}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system["edsm_id"]}/name/#{system["name"]}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{system["name"]}){:target=\"_blank\"}</sup>"
+  return "#{system["name"]} <sup>[E](https://eddb.io/system/factions/#{system["id"]}){:target=\"_blank\"} [M](https://www.edsm.net/en/system/id/#{system["edsm_id"]}/name/#{system["name"]}){:target=\"_blank\"} [I](https://inara.cz/search/?search=#{system["name"]}){:target=\"_blank\"}</sup>"
 end
 
 def link_to_faction(faction)
-  return "#{faction["name"]} <sup>[M](https://www.edsm.net/en/faction/id/#{faction["id"]}/name/#{faction["name"].gsub(" ", "+")}){:target=\"_blank\"} [I](https://inara.cz/search/?location=search&searchglobal=#{faction["name"]}){:target=\"_blank\"}</sup>"
+  return "#{faction["name"]} <sup>[M](https://www.edsm.net/en/faction/id/#{faction["id"]}/name/#{faction["name"].gsub(" ", "+")}){:target=\"_blank\"} [I](https://inara.cz/search/?search=#{faction["name"]}){:target=\"_blank\"}</sup>"
 end
 
 def updated_at(el)
