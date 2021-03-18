@@ -50,6 +50,7 @@ output = RSS::Maker.make("2.0") do |maker|
         validGuids.push(article.guid.content)
         Cache["knownGuids"][article.guid.content] = article.pubDate
       end
+      next if !valid
       # Write article into our rebuilt feed
       maker.items.new_item do |item|
         item.guid.isPermaLink = false
