@@ -4,3 +4,6 @@ html/*.html
 *.csv
 Run.sh
 trello.yml
+
+data/galnet_cache/articles.yml
+data/galnet_cache/feed.xml
