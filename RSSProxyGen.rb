@@ -33,11 +33,11 @@ output = RSS::Maker.make("2.0") do |maker|
   URI.open("http://proxy.gonegeeky.com/edproxy/") do |rss|
     feed = RSS::Parser.parse(rss)
 
-    # Filter top 10 unique
-    feed.items.uniq! {|x| x.guid.content }.first(10)
+    # Filter unique
+    feed.items.uniq! {|x| x.guid.content }
 
     # Get top 10 unique guids from current feed to consider as active if they are known and did not disappear
-    validGuids = feed.items.collect {|x| x.guid.content } & Cache["activeGuids"]
+    validGuids = feed.items.collect {|x| x.guid.content }.first(10) & Cache["activeGuids"]
 
     feed.items.each do |article|
       valid = false
