@@ -2,7 +2,7 @@ require_relative "APIClient"
 require "time"
 
 class EDBGSClient < APIClient
-  BASE_URL = "https://elitebgs.app/api/ebgs/v4/"
+  BASE_URL = "https://elitebgs.app/api/ebgs/v5/"
 
   def self.getFaction(faction)
     return get("#{BASE_URL}factions?name=#{faction}")
