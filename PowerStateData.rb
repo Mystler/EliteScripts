@@ -137,14 +137,13 @@ end
 # Expected Item properties: control_system
 class ControlSystemFlipStateDataSet < PowerDataSet
   def itemToString(item)
-    active_percent = (100.0 * item[:control_system]["flip_data"][:active_ccc_r]).round(1)
-    max_percent = (100.0 * item[:control_system]["flip_data"][:max_ccc_r]).round(1)
-    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:active_ccc]} (#{active_percent}%) | #{item[:control_system]["flip_data"][:needed_ccc]} (#{item[:control_system]["flip_data"][:buffer_ccc]}) | #{item[:control_system]["flip_data"][:max_ccc]} (#{max_percent}%) \
+    max_percent = (100.0 * item[:control_system]["flip_data"][:max_fav_r]).round(1)
+    return "#{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:active_fav]}/#{item[:control_system]["flip_data"][:active_neutral]}/#{item[:control_system]["flip_data"][:active_weak]} | #{item[:control_system]["flip_data"][:buffer_fav]} | #{item[:control_system]["flip_data"][:max_fav]} (#{max_percent}%) \
     | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:control_system]["dist_to_hq"]} LY"
   end
 
   def tableHeader
-    header = ["Control System", "Fav Governments", "Needed Fav Governments", "Possible Fav Governments", "Total Governments", "From HQ"]
+    header = ["Control System", "Governments (+/0/-)", "Lead in Favorables", "Possible Fav Governments", "Total Governments", "From HQ"]
     header.insert(-2, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end
@@ -164,27 +163,26 @@ class ControlSystemFlipStateDataSet < PowerDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r]] }
+    @items.sort_by! { |x| [x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_system]["flip_data"][:active_fav]] }
   end
 end
 
 class SimpleControlSystemFlipStateDataSet < PowerDataSet
   def itemToString(item)
-    active_percent = (100.0 * item[:control_system]["flip_data"][:active_ccc_r]).round(1)
-    max_percent = (100.0 * item[:control_system]["flip_data"][:max_ccc_r]).round(1)
+    max_percent = (100.0 * item[:control_system]["flip_data"][:max_fav_r]).round(1)
     priority = (item[:priority] == 1 ? "Top" : (item[:priority] == 2 ? "High" : "Low"))
-    return "#{link_to_system(item[:control_system])} | #{priority} | #{item[:control_system]["flip_data"][:active_ccc]} (#{active_percent}%) | #{item[:control_system]["flip_data"][:needed_ccc]} (#{item[:control_system]["flip_data"][:buffer_ccc]}) | #{item[:control_system]["flip_data"][:max_ccc]} (#{max_percent}%) \
+    return "#{link_to_system(item[:control_system])} | #{priority} | #{item[:control_system]["flip_data"][:active_fav]}/#{item[:control_system]["flip_data"][:active_neutral]}/#{item[:control_system]["flip_data"][:active_weak]} | #{item[:control_system]["flip_data"][:buffer_fav]} | #{item[:control_system]["flip_data"][:max_fav]} (#{max_percent}%) \
     | #{item[:control_system]["flip_data"][:total_govs]} | #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:control_system]["dist_to_hq"]} LY"
   end
 
   def tableHeader
-    header = ["Control System", "Priority", "Fav Governments", "Needed Fav Governments", "Possible Fav Governments", "Total Governments", "From HQ"]
+    header = ["Control System", "Priority", "Governments (+/0/-)", "Lead in Favorables", "Possible Fav Governments", "Total Governments", "From HQ"]
     header.insert(-2, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end
 
   def sort
-    @items.sort_by! { |x| [x[:priority], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r]] }
+    @items.sort_by! { |x| [x[:priority], x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_system]["flip_data"][:active_fav]] }
   end
 end
 
@@ -216,7 +214,7 @@ class FavPushFactionDataSet < PowerDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r], x[:control_system]["dist_to_hq"], -x[:faction]["influence"]] }
+    @items.sort_by! { |x| [x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_system]["flip_data"][:active_fav], x[:control_system]["dist_to_hq"], -x[:faction]["influence"]] }
   end
 end
 
@@ -229,7 +227,7 @@ class SimpleFavPushFactionDataSet < FavPushFactionDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:priority], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_system]["flip_data"][:active_ccc_r], x[:control_system]["dist_to_hq"], -x[:faction]["influence"]] }
+    @items.sort_by! { |x| [x[:priority], x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_system]["flip_data"][:active_fav], x[:control_system]["dist_to_hq"], -x[:faction]["influence"]] }
   end
 end
 
@@ -238,7 +236,7 @@ class WarringCCCDataSet < PowerDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{link_to_system(item[:system])} | \
     #{link_to_system(item[:control_system])} | #{item[:faction]["states_output"]} | \
-    #{item[:control_war]} | #{item[:ccc_flip_str]} | #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:system]["dist_to_hq"]} LY | #{updated_at(item[:system])}"
+    #{item[:control_war]} | #{item[:fav_flip_str]} | #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:system]["dist_to_hq"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
@@ -264,20 +262,20 @@ class WarringCCCDataSet < PowerDataSet
   def sort
     @items.each do |x|
       if x[:control_war] == "Attacking"
-        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] == -1 ? "Flip" : x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc] + 1} banking" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
-        x[:ccc_flip_sort] = 0
+        x[:fav_flip_str] = x[:control_system]["flip_data"][:buffer_fav] == 0 ? "Flip" : "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_sort] = 0
       elsif x[:control_war] == "Defending"
-        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] == 0 ? "Unflip" : x[:control_system]["flip_data"][:buffer_ccc] > 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
-        x[:ccc_flip_sort] = 0
+        x[:fav_flip_str] = x[:control_system]["flip_data"][:buffer_fav] == 1 ? "Unflip" : "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_sort] = 0
       elsif x[:control_war] == "???"
-        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
-        x[:ccc_flip_sort] = 0
+        x[:fav_flip_str] = "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_sort] = 0
       else
-        x[:ccc_flip_str] = x[:control_system]["flip_data"][:buffer_ccc] >= 0 ? "#{x[:control_system]["flip_data"][:buffer_ccc]} buffer" : "#{-x[:control_system]["flip_data"][:buffer_ccc]} needed"
-        x[:ccc_flip_sort] = 1
+        x[:fav_flip_str] = "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_sort] = 1
       end
     end
-    @items.sort_by! { |x| [x[:ccc_flip_sort], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_war].ord, x[:system]["dist_to_hq"]] }
+    @items.sort_by! { |x| [x[:fav_flip_sort], x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_war].ord, x[:system]["dist_to_hq"]] }
   end
 end
 
@@ -291,7 +289,7 @@ class SimpleWarringCCCDataSet < WarringCCCDataSet
 
   def sort
     super
-    @items.sort_by! { |x| [x[:priority], x[:ccc_flip_sort], x[:control_system]["flip_data"][:buffer_ccc].abs, -x[:control_war].ord, x[:system]["dist_to_hq"]] }
+    @items.sort_by! { |x| [x[:priority], x[:fav_flip_sort], x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_war].ord, x[:system]["dist_to_hq"]] }
   end
 end
 
@@ -347,21 +345,6 @@ class CCIncomeDataSet < PowerDataSet
   end
 end
 
-# Expected Item properties: control_system, system, station, faction, priority
-class StationDropDataSet < PowerDataSet
-  def itemToString(item)
-    return "#{item[:station]["name"]} | #{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{link_to_system(item[:control_system])} | #{(item[:station]["distanceToArrival"]).round(1)} Ls | #{item[:system]["dist_to_hq"]} LY"
-  end
-
-  def tableHeader
-    return ["Station", "Faction", "States", "System", "Control System", "To Station", "From HQ"]
-  end
-
-  def sort
-    @items.sort_by! { |x| [x[:priority], -x[:faction]["influence"]] }
-  end
-end
-
 # Expected Item properties: control_system, total_ccc_inf
 class TopCCCInfMovements < PowerDataSet
   def itemToString(item)
@@ -408,19 +391,19 @@ class RetreatsDataSet < PowerDataSet
   end
 
   def sort
-    @items.sort_by! { |x| [x[:retreat_prio], x[:control_system]["flip_data"][:buffer_ccc].abs, x[:system]["dist_to_hq"]] }
+    @items.sort_by! { |x| [x[:retreat_prio], x[:control_system]["flip_data"][:buffer_fav].abs, x[:system]["dist_to_hq"]] }
   end
 end
 
 class FavFacDefenseDataSet < PowerDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{(item[:faction]["influence"] * 100).round(1)}% \
-    | #{(item[:influence_lead] * 100).round(1)}% | #{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:buffer_ccc]} | \
+    | #{(item[:influence_lead] * 100).round(1)}% | #{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:buffer_fav]} | \
     #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:system]["dist_to_hq"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    header = ["Faction", "States", "System", "Influence", "Lead", "Sphere", "Flip Buffer", "From HQ", "Updated"]
+    header = ["Faction", "States", "System", "Influence", "Lead", "Sphere", "Flip Diff", "From HQ", "Updated"]
     header.insert(-3, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end

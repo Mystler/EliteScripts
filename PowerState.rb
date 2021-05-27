@@ -82,9 +82,9 @@ def system_cc_income(population)
 end
 
 def system_cc_upkeep(dist)
-  # Experimental fitting (via R) until I get some better formula
+  # ([Distance From HQ]^2)*0.001+20, rounded up.
   return 20 unless dist > 0
-  return (0.0000001977 * dist ** 3 + 0.0009336 * dist ** 2 + 0.006933 * dist + 0.333 + 20).round
+  return (0.001 * dist ** 2 + 20).ceil
 end
 
 def system_cc_overhead(no_of_systems)
@@ -94,13 +94,13 @@ end
 
 # Collecting data into these
 ctrl_bonus_impossible = ControlSystemFlipStateDataSet.new(
-  "Control systems with impossible fortification bonus", "fortify",
-  "These do not have favorable factions in enough exploited systems (50% cannot be reached)."
+  "Control systems without fortification bonus", "fortify",
+  "These do not have favorable factions in enough exploited systems (50% cannot be reached, however plurality might still be possible)."
 )
-ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems without active fortification bonus where possible", "fortify")
+ctrl_bonus_incomplete = ControlSystemFlipStateDataSet.new("Control systems without active fortification bonus and majority possible", "fortify")
 ctrl_bonus_active = ControlSystemFlipStateDataSet.new("Control systems with active fortification bonus", "fortify")
 ctrl_weak = PowerDataSet.new("Control systems that are UNFAVORABLE", "covert")
-ctrl_weak.setTable(["Control System", "Unfavorable Governments", "Total Governments", "From HQ"])
+ctrl_weak.setTable(["Control System", "Governments (+/0/-)", "Total Governments", "From HQ"])
 ctrl_radius_profit = CCProfitDataSet.new("Control systems by profit", "finance")
 ctrl_upkeep = CCUpkeepDataSet.new("Control systems by upkeep costs", "finance", "CC values calculated with experimental formulas.")
 ctrl_radius_income = CCIncomeDataSet.new("Control systems by radius income", "finance", "CC values calculated with experimental formulas.")
@@ -128,10 +128,6 @@ simple_defense = SimpleFavFacDefenseDataSet.new(
   "Best factions to push for defense", "fortify",
   "Shows favorable factions that are in control but do not have a high lead."
 )
-#simple_data_drops = StationDropDataSet.new(
-#  "Recommended stations for data drops", "finance",
-#  "Stations with favorable factions in control."
-#)
 simple_fac_war = SimpleWarringCCCDataSet.new("Wars to support", "combat")
 
 # Process data
@@ -157,6 +153,7 @@ systems_control.each do |ctrl_sys|
   gov_count = 0
   fav_gov_count = 0
   weak_gov_count = 0
+  neutral_gov_count = 0
   poss_fav_gov_count = 0
   radius_income = 0
   total_ccc_inf = {now: 0, week: 0, month: 0}
@@ -233,8 +230,13 @@ systems_control.each do |ctrl_sys|
 
     # Flip state counters
     gov_count += 1
-    fav_gov_count += 1 if is_strong_gov(sys_controller)
-    weak_gov_count += 1 if is_weak_gov(sys_controller)
+    if is_strong_gov(sys_controller)
+      fav_gov_count += 1
+    elsif is_weak_gov(sys_controller)
+      weak_gov_count += 1
+    else
+      neutral_gov_count += 1
+    end
     poss_fav_gov_count += 1 if sys_fav_facs.any?
 
     # Investigate favourable faction
@@ -284,14 +286,6 @@ systems_control.each do |ctrl_sys|
       simple_defense.addItem({faction: sys_controller, influence_lead: influence_lead, system: sys, control_system: ctrl_sys, priority: priority}) if priority <= 3
     end
 
-    #    if priority <= 3 && is_strong_gov(sys_controller) && !is_conflicting(sys_controller["active_states_names"] + sys_controller["pending_states_names"])
-    #      edsm_stations = EDSMClient.getSystemStations(sys["name"])["stations"]
-    #      ccc_stations = edsm_stations.select { |x| x["controllingFaction"]["id"] == sys_controller["id"] }
-    #      ccc_stations.each do |station|
-    #        simple_data_drops.addItem({control_system: ctrl_sys, system: sys, station: station, faction: sys_controller, priority: priority})
-    #      end
-    #    end
-
     # Retreat investigation
     sys_facs.select { |x| (x["activeStates"] + x["pendingStates"]).any? { |y| y["state"] == "Retreat" } }.each do |retreat_fac|
       retreat_prio = 0
@@ -310,14 +304,13 @@ systems_control.each do |ctrl_sys|
   end
 
   # Analyze
-  fav_gov = gov_count == 0 ? 0.0 : fav_gov_count.to_f / gov_count.to_f
+  fav_active = fav_gov_count > neutral_gov_count && fav_gov_count > weak_gov_count
+  weak_active = weak_gov_count > neutral_gov_count && weak_gov_count > fav_gov_count
   poss_fav_gov = gov_count == 0 ? 0.0 : poss_fav_gov_count.to_f / gov_count.to_f
-  weak_gov = gov_count == 0 ? 0.0 : weak_gov_count.to_f / gov_count.to_f
-  needed_ccc = (gov_count * 0.5).to_i.next
-  buffer_ccc = fav_gov_count - needed_ccc
-  ctrl_sys["flip_data"] = {active_ccc: fav_gov_count, active_ccc_r: fav_gov, max_ccc: poss_fav_gov_count, max_ccc_r: poss_fav_gov, needed_ccc: needed_ccc, buffer_ccc: buffer_ccc, total_govs: gov_count}
+  buffer_fav = [fav_gov_count - neutral_gov_count, fav_gov_count - weak_gov_count].min
+  ctrl_sys["flip_data"] = {active_fav: fav_gov_count, active_neutral: neutral_gov_count, active_weak: weak_gov_count, max_fav: poss_fav_gov_count, max_fav_r: poss_fav_gov, buffer_fav: buffer_fav, total_govs: gov_count}
   item = {control_system: ctrl_sys, priority: priority}
-  if fav_gov > 0.5
+  if fav_active
     ctrl_bonus_active.addItem item
   elsif poss_fav_gov > 0.5
     ctrl_bonus_incomplete.addItem item
@@ -328,7 +321,7 @@ systems_control.each do |ctrl_sys|
   if defined?(AislingStateConfig)
     simple_spherestate.addItem(item) if AislingStateConfig.prioritySpheres.has_key? ctrl_sys["name"]
   end
-  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_gov > 0.5
+  ctrl_weak.addItem "#{link_to_system(ctrl_sys)} | #{fav_gov_count}/#{neutral_gov_count}/#{weak_gov_count} | #{gov_count} | #{ctrl_sys["dist_to_hq"]} LY" if weak_active
 
   ctrl_radius_income.addItem({control_system: ctrl_sys, income: radius_income})
   upkeep = system_cc_upkeep(ctrl_sys["dist_to_hq"])
@@ -409,7 +402,6 @@ ctrl_trends.write(advancedOut)
 if PowerData.simple_output
   simple_spherestate.write(simpleOut)
   simple_fac_war.write(simpleOut) if simple_fac_war.hasItems()
-  #simple_data_drops.write(simpleOut) if simple_data_drops.hasItems()
   simple_fac_push.write(simpleOut) if simple_fac_push.hasItems()
   simple_defense.write(simpleOut) if simple_defense.hasItems()
 end
