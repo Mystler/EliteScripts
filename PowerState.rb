@@ -387,12 +387,12 @@ simpleOut = StringIO.new
 end
 
 fac_fav_war.write(advancedOut)
+fac_fav_defense.write(advancedOut)
 retreats.write(advancedOut)
 ctrl_weak.write(advancedOut)
 ctrl_bonus_incomplete.write(advancedOut)
 fac_fav_push.write(advancedOut)
 ctrl_bonus_active.write(advancedOut)
-fac_fav_defense.write(advancedOut)
 ctrl_bonus_impossible.write(advancedOut)
 ctrl_radius_profit.write(advancedOut)
 ctrl_upkeep.write(advancedOut)
