@@ -307,7 +307,7 @@ systems_control.each do |ctrl_sys|
   fav_active = fav_gov_count > neutral_gov_count && fav_gov_count > weak_gov_count
   weak_active = weak_gov_count > neutral_gov_count && weak_gov_count > fav_gov_count
   poss_fav_gov = gov_count == 0 ? 0.0 : poss_fav_gov_count.to_f / gov_count.to_f
-  buffer_fav = [fav_gov_count - neutral_gov_count, fav_gov_count - weak_gov_count].min
+  buffer_fav = ([fav_gov_count - neutral_gov_count, fav_gov_count - weak_gov_count].min / 2.0).ceil
   ctrl_sys["flip_data"] = {active_fav: fav_gov_count, active_neutral: neutral_gov_count, active_weak: weak_gov_count, max_fav: poss_fav_gov_count, max_fav_r: poss_fav_gov, buffer_fav: buffer_fav, total_govs: gov_count}
   item = {control_system: ctrl_sys, priority: priority}
   if fav_active

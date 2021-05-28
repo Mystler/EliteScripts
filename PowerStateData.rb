@@ -143,7 +143,7 @@ class ControlSystemFlipStateDataSet < PowerDataSet
   end
 
   def tableHeader
-    header = ["Control System", "Governments (+/0/-)", "Lead in Favorables", "Possible Fav Governments", "Total Governments", "From HQ"]
+    header = ["Control System", "Governments (+/0/-)", "Diff in Favorables", "Possible Fav Governments", "Total Governments", "From HQ"]
     header.insert(-2, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end
@@ -261,19 +261,22 @@ class WarringCCCDataSet < PowerDataSet
 
   def sort
     @items.each do |x|
+      diff_str = "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
       if x[:control_war] == "Attacking"
-        x[:fav_flip_str] = x[:control_system]["flip_data"][:buffer_fav] == 0 ? "Flip" : "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_str] = x[:control_system]["flip_data"][:buffer_fav] == 0 ? "Flip" : diff_str
         x[:fav_flip_sort] = 0
       elsif x[:control_war] == "Defending"
-        x[:fav_flip_str] = x[:control_system]["flip_data"][:buffer_fav] == 1 ? "Unflip" : "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_str] = x[:control_system]["flip_data"][:buffer_fav] == 1 ? "Unflip" : diff_str
         x[:fav_flip_sort] = 0
       elsif x[:control_war] == "???"
-        x[:fav_flip_str] = "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_str] = diff_str
         x[:fav_flip_sort] = 0
       else
-        x[:fav_flip_str] = "#{x[:control_system]["flip_data"][:buffer_fav]} diff"
+        x[:fav_flip_str] = diff_str
         x[:fav_flip_sort] = 1
       end
+      gov_str = " (#{x[:control_system]["flip_data"][:active_fav]}/#{x[:control_system]["flip_data"][:active_neutral]}/#{x[:control_system]["flip_data"][:active_weak]})"
+      x[:fav_flip_str] += gov_str
     end
     @items.sort_by! { |x| [x[:fav_flip_sort], x[:control_system]["flip_data"][:buffer_fav].abs, -x[:control_war].ord, x[:system]["dist_to_hq"]] }
   end
@@ -398,12 +401,12 @@ end
 class FavFacDefenseDataSet < PowerDataSet
   def itemToString(item)
     return "#{link_to_faction(item[:faction])} | #{item[:faction]["states_output"]} | #{link_to_system(item[:system])} | #{(item[:faction]["influence"] * 100).round(1)}% \
-    | #{(item[:influence_lead] * 100).round(1)}% | #{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:buffer_fav]} | \
+    | #{(item[:influence_lead] * 100).round(1)}% | #{link_to_system(item[:control_system])} | #{item[:control_system]["flip_data"][:buffer_fav]} diff (#{item[:control_system]["flip_data"][:active_fav]}/#{item[:control_system]["flip_data"][:active_neutral]}/#{item[:control_system]["flip_data"][:active_weak]}) | \
     #{item[:control_system]["fortPrioText"] + " |" if defined?(AislingStateConfig)} #{item[:system]["dist_to_hq"]} LY | #{updated_at(item[:system])}"
   end
 
   def tableHeader
-    header = ["Faction", "States", "System", "Influence", "Lead", "Sphere", "Flip Diff", "From HQ", "Updated"]
+    header = ["Faction", "States", "System", "Influence", "Lead", "Sphere", "Flip State", "From HQ", "Updated"]
     header.insert(-3, "Fort Prio") if defined?(AislingStateConfig)
     return header
   end
